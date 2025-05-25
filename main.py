@@ -1,33 +1,59 @@
 import requests
 import datetime
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
 # --- Configuration ---
 
 
+load_dotenv()
+API_TOKEN = os.getenv("DYNATRACE_API_TOKEN")
+
 ENV_ID = 'kae68552'
+OUTPUT_FOLDER = "output/"
 
 # Service name → ID mapping
 SERVICE_MAP = {
-    "ComercioTransaccionesController": "SERVICE-FD9343224D905203"
+    "ComercioTransaccionesController": "SERVICE-FD9343224D905203",
+    "AbonosController": "SERVICE-123E236BA4855F4A"
 }
 
 
 # --- Functions ---
 
-def get_service_performance(service_id):
+# def get_service_performance(service_id):
+#     """
+#     Fetch response time metrics for a given service from Dynatrace.
+#     """
+#     url = f'https://{ENV_ID}.live.dynatrace.com/api/v2/metrics/query'
+#     headers = {
+#         'Authorization': f'Api-Token {API_TOKEN}'
+#     }
+#     params = {
+#         'metricSelector': 'builtin:service.response.time',
+#         'resolution': '1m',
+#         'entitySelector': f'entityId({service_id})',
+#         'from': 'now-7d',
+#         'to': 'now'
+#     }
+#     response = requests.get(url, headers=headers, params=params)
+#     response.raise_for_status()
+#     return response.json()
+
+def get_service_performance(service_id, metric_selector):
     """
-    Fetch response time metrics for a given service from Dynatrace.
+    Fetch metrics for a given service from Dynatrace.
     """
     url = f'https://{ENV_ID}.live.dynatrace.com/api/v2/metrics/query'
     headers = {
         'Authorization': f'Api-Token {API_TOKEN}'
     }
     params = {
-        'metricSelector': 'builtin:service.response.time',
+        'metricSelector': metric_selector,
         'resolution': '1m',
         'entitySelector': f'entityId({service_id})',
-        'from': 'now-7d',
+        'from': 'now-1d',
         'to': 'now'
     }
     response = requests.get(url, headers=headers, params=params)
@@ -35,25 +61,147 @@ def get_service_performance(service_id):
     return response.json()
 
 
-def output_to_screen_and_file(service_name, data):
-    """
-    Output metrics to console and a .txt file.
-    """
+def parse_metric_data(data):
     series = data['result'][0]['data'][0]
     timestamps = series['timestamps']
     values = series['values']
+    return {ts: val for ts, val in zip(timestamps, values)}
+
+
+# def output_to_screen_and_file(service_name, data):
+#     """
+#     Output metrics to console and a .txt file.
+#     """
+#     series = data['result'][0]['data'][0]
+#     timestamps = series['timestamps']
+#     values = series['values']
     
+#     header = f"Entregando información de consultas sobre el servicio {service_name}"
+#     print(header)
+    
+#     with open('response_times.txt', 'w', encoding='utf-8') as f:
+#         f.write(header + "\n\n")
+#         for ts, val in zip(timestamps, values):
+#             if val is not None:
+#                 time_str = datetime.datetime.fromtimestamp(ts / 1000).strftime('%Y-%m-%d %H:%M:%S')
+#                 ms = val / 1000
+#                 print(f"{time_str}: {ms:.2f} ms")
+#                 f.write(f"{time_str}: {ms:.2f} ms\n")
+#         f.write("\nFin de los datos\n")
+
+
+# def output_to_screen_and_file(service_name, service_id):
+#     """
+#     Output response time and total requests per timestamp to console and a .txt file.
+#     """
+#     # Fetch both metrics
+#     response_time_data = get_service_performance(service_id, 'builtin:service.response.time')
+#     request_count_data = get_service_performance(service_id, 'builtin:service.requestCount.total')
+
+#     # Parse metrics into dictionaries
+#     rt_dict = parse_metric_data(response_time_data)
+#     req_dict = parse_metric_data(request_count_data)
+
+#     # Combine timestamps from both metrics
+#     all_timestamps = sorted(set(rt_dict.keys()) | set(req_dict.keys()))
+
+#     header = f"Entregando información de consultas sobre el servicio {service_name}"
+#     print(header)
+
+#     with open(f'response_times_{service_name}.txt', 'w', encoding='utf-8') as f:
+#         f.write(header + "\n\n")
+
+#         for ts in all_timestamps:
+#             time_str = datetime.datetime.fromtimestamp(ts / 1000).strftime('%Y-%m-%d %H:%M:%S')
+#             rt = rt_dict.get(ts)
+#             req = req_dict.get(ts)
+
+#             rt_ms = rt / 1000 if rt is not None else None
+#             line = f"{time_str}: Response time: {rt_ms:.2f} ms" if rt_ms is not None else f"{time_str}: Response time: None"
+#             line += f", Requests: {int(req) if req is not None else 'N/A'}"
+
+#             print(line)
+#             f.write(line + "\n")
+
+#         f.write("\nFin de los datos\n")
+
+
+def output_to_screen_and_file(service_name, service_id):
+    """
+    Output response time, total requests, successes, and failures per timestamp to console and a .txt file.
+    """
+    # Fetch all metrics
+    response_time_data = get_service_performance(service_id, 'builtin:service.response.time')
+    request_count_data = get_service_performance(service_id, 'builtin:service.requestCount.total')
+    success_count_data = get_service_performance(service_id, 'builtin:service.errors.server.successCount')
+    failure_count_data = get_service_performance(service_id, 'builtin:service.errors.server.count')
+
+    # Parse metrics into dictionaries
+    rt_dict = parse_metric_data(response_time_data)
+    req_dict = parse_metric_data(request_count_data)
+    success_dict = parse_metric_data(success_count_data)
+    failure_dict = parse_metric_data(failure_count_data)
+
+    # Combine all timestamps
+    all_timestamps = sorted(set(rt_dict) | set(req_dict) | set(success_dict) | set(failure_dict))
+
     header = f"Entregando información de consultas sobre el servicio {service_name}"
     print(header)
-    
-    with open('response_times.txt', 'w', encoding='utf-8') as f:
+
+    # Initialize sums and counter
+    success_rate_sum = 0
+    failure_rate_sum = 0
+    valid_count = 0
+
+    with open(f'{OUTPUT_FOLDER}response_times_{service_name}.txt', 'w', encoding='utf-8') as f:
         f.write(header + "\n\n")
-        for ts, val in zip(timestamps, values):
-            if val is not None:
-                time_str = datetime.datetime.fromtimestamp(ts / 1000).strftime('%Y-%m-%d %H:%M:%S')
-                ms = val / 1000
-                print(f"{time_str}: {ms:.2f} ms")
-                f.write(f"{time_str}: {ms:.2f} ms\n")
+
+        for ts in all_timestamps:
+            time_str = datetime.datetime.fromtimestamp(ts / 1000).strftime('%Y-%m-%d %H:%M:%S')
+            rt = rt_dict.get(ts)
+            req = req_dict.get(ts)
+            success = success_dict.get(ts)
+            failure = failure_dict.get(ts)
+
+            # Calculate reponse times
+            rt_ms = rt / 1000 if rt is not None else None
+
+            # Calculate rates if possible
+            success_rate = (success / req * 100) if req and success is not None else None
+            failure_rate = (failure / req * 100) if req and failure is not None else None
+
+            # Make sure that both success rate and failure rate have valid values
+            # (either both are valid or both aren't). If so, calculate the aggregation
+            if success_rate is not None and failure_rate is not None:
+                success_rate_sum += success_rate
+                failure_rate_sum += failure_rate
+                valid_count += 1
+
+            # Build output line
+            line = f"{time_str}: Response time: {rt_ms:.2f} ms" if rt_ms is not None else f"{time_str}: Response time: None"
+            line += f", Requests: {int(req) if req is not None else 'N/A'}"
+            line += f", Successes: {int(success) if success is not None else 'N/A'}"
+            line += f", Failures: {int(failure) if failure is not None else 'N/A'}"
+            line += f", Success Rate: {success_rate:.2f}%" if success_rate is not None else ", Success Rate: N/A"
+            line += f", Failure Rate: {failure_rate:.2f}%" if failure_rate is not None else ", Failure Rate: N/A"
+
+            print(line)
+            f.write(line + "\n")
+        
+        # Calculate and output averages
+        f.write("\n")
+        print("\n")
+        if valid_count > 0:
+            avg_success_rate = success_rate_sum / valid_count
+            avg_failure_rate = failure_rate_sum / valid_count
+            avg_line = (f"Promedio global para {service_name} — "
+                        f"Success Rate: {avg_success_rate:.2f}%, "
+                        f"Failure Rate: {avg_failure_rate:.2f}%\n")
+        else:
+            avg_line = f"Promedio global para {service_name} — Sin datos válidos para calcular tasas\n"      
+        
+        print(avg_line)
+        f.write(avg_line + "\n")
         f.write("\nFin de los datos\n")
 
 
@@ -151,9 +299,9 @@ def output_to_excel(service_name, data):
 def main():
     for service_name, service_id in SERVICE_MAP.items():
         try:
-            data = get_service_performance(service_id)
-            output_to_screen_and_file(service_name, data)
-            output_to_excel(service_name, data)
+            # data = get_service_performance(service_id)
+            output_to_screen_and_file(service_name, service_id)
+            # output_to_excel(service_name, data)
         except Exception as e:
             print(f"Error processing service {service_name}: {e}")
 
