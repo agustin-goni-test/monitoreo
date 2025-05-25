@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import os
 import time
 from openpyxl.styles import Alignment, Border, Side, PatternFill, Font
+import openpyxl
 
 # --- Configuration ---
 
@@ -37,7 +38,7 @@ def get_service_performance(service_id, metric_selector):
         'metricSelector': metric_selector,
         'resolution': '1m',
         'entitySelector': f'entityId({service_id})',
-        'from': 'now-2d',
+        'from': 'now-7d',
         'to': 'now'
     }
     response = requests.get(url, headers=headers, params=params)
@@ -210,24 +211,6 @@ def output_to_excel(service_name, metrics):
     success_dict = parse_metric_data(success_count_data)
     failure_dict = parse_metric_data(failure_count_data)
 
-    # series = response_time_data['result'][0]['data'][0]
-    # timestamps = series['timestamps']
-    # values = series['values']
-
-    # rows = []
-    # for ts, val in zip(timestamps, values):
-    #     if val is not None:
-    #         time_str = datetime.datetime.fromtimestamp(ts / 1000).strftime('%Y-%m-%d %H:%M:%S')
-    #         ms = val / 1000
-    #         threshold = 1 if ms < 3000 else 0
-    #         rows.append({
-    #             "Timestamp": time_str,
-    #             "Response time": round(ms, 2),
-    #             "Threshold": threshold
-    #         })
-
-    # df = pd.DataFrame(rows)
-
     # # Create dynamic filename
     timestamp_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{OUTPUT_FOLDER}{service_name}_response_times_{timestamp_suffix}.xlsx"
@@ -245,8 +228,8 @@ def output_to_excel(service_name, metrics):
         rt_ms = rt / 1000 if rt is not None else None
         threshold_flag = 1 if rt_ms is not None and rt_ms < 3000 else 0
 
-        success_rate = (success / req * 100) if req and success is not None else None
-        failure_rate = (failure / req * 100) if req and failure is not None else None
+        success_rate = (success / req) if req and success is not None else None
+        failure_rate = (failure / req) if req and failure is not None else None
 
         rows.append({
             "Timestamp": time_str,
@@ -269,153 +252,364 @@ def output_to_excel(service_name, metrics):
 
 
 def raw_numbers_sheet(writer, df, service_name):
+    # Write data to Excel first
     df.to_excel(writer, index=False, sheet_name=service_name)
-
-    # Take care of formatting
+    
+    # Apply formatting
     worksheet = writer.sheets[service_name]
-
-    worksheet.column_dimensions['A'].width = 30
-    worksheet.column_dimensions['B'].width = 20
-    worksheet.column_dimensions['C'].width = 20
-    worksheet.column_dimensions['D'].width = 20  # Requests
-    worksheet.column_dimensions['E'].width = 20  # Successes
-    worksheet.column_dimensions['F'].width = 20  # Failures
-    worksheet.column_dimensions['G'].width = 25  # Success Rate
-    worksheet.column_dimensions['H'].width = 25  # Failure Rate
-
+    
+    # Define styles (consistent with other sheets)
+    header_fill = PatternFill(start_color='002060', end_color='002060', fill_type='solid')
+    header_font = Font(color='FFFFFF', bold=True, size=12)
+    center_alignment = Alignment(horizontal='center', vertical='center')
+    border = Border(left=Side(style='thin'), 
+                  right=Side(style='thin'), 
+                  top=Side(style='thin'), 
+                  bottom=Side(style='thin'))
+    
+    # Set column widths (as you specified)
+    column_widths = {
+        'A': 30,  # Timestamp
+        'B': 20,  # Response time
+        'C': 20,  # Threshold
+        'D': 20,  # Requests
+        'E': 20,  # Successes
+        'F': 20,  # Failures
+        'G': 25,  # Success Rate
+        'H': 25   # Failure Rate
+    }
+    for col, width in column_widths.items():
+        worksheet.column_dimensions[col].width = width
+    
+    # Apply header style
+    for cell in worksheet[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center_alignment
+        cell.border = border
+    
+    # Apply data styles
+    for row in worksheet.iter_rows(min_row=2):
+        for cell in row:
+            cell.border = border
+            cell.alignment = center_alignment
+            
+            # Apply number formatting based on column
+            col_letter = cell.column_letter
+            if col_letter == 'A':  # Timestamp
+                cell.number_format = 'YYYY-MM-DD HH:MM:SS'
+            elif col_letter == 'B':  # Response time
+                cell.number_format = '0.00'
+            elif col_letter == 'C':  # Threshold
+                cell.number_format = '0'
+            elif col_letter in ('D', 'E', 'F'):  # Requests/Successes/Failures
+                cell.number_format = '0'
+            elif col_letter in ('G', 'H'):  # Rates
+                cell.number_format = '0.00%'
+    
+    # Freeze header row
+    worksheet.freeze_panes = 'A2'
 
 
 def stats_sheet(writer, df):
-    from openpyxl.styles import Border, Side, PatternFill, Font, Alignment
-
-    # Summary statistics
-    avg_response = df["Response time"].mean()
-    min_response = df["Response time"].min()
-    max_response = df["Response time"].max()
-    median_response = df["Response time"].median()
+    # Calculate statistics with full precision
+    avg_response = float(df["Response time"].mean())
+    min_response = float(df["Response time"].min())
+    max_response = float(df["Response time"].max())
+    median_response = float(df["Response time"].median())
     total_count = len(df)
-    above_threshold_pct = (df["Threshold"] == 0).sum() / total_count * 100
-    below_threshold_pct = (df["Threshold"] == 1).sum() / total_count * 100
+    
+    # Calculate threshold percentages
+    above_threshold_count = (df["Threshold"] == 0).sum()
+    below_threshold_count = (df["Threshold"] == 1).sum()
+    above_threshold_pct = above_threshold_count / total_count  # 0-1 scale
+    below_threshold_pct = below_threshold_count / total_count  # 0-1 scale
+    
+    total_requests = int(df["Total Requests"].sum())
+    total_successes = int(df["Successes"].sum())
+    total_failures = int(df["Failures"].sum())
+    
+    # Calculate rates
+    overall_success_rate = float(total_successes / total_requests) if total_requests else 0.0
+    overall_failure_rate = float(total_failures / total_requests) if total_requests else 0.0
 
+    # Create DataFrame with metrics
     stats_df = pd.DataFrame({
         "Metric": [
-            "Average response time",
-            "Fastest response time",
-            "Slowest response time",
-            "Median response time",
+            "Average response time (ms)",
+            "Fastest response time (ms)",
+            "Slowest response time (ms)",
+            "Median response time (ms)",
             "Percent above threshold (>= 3000 ms)",
-            "Percent below threshold (< 3000 ms)"
+            "Percent below threshold (< 3000 ms)",
+            "Total number of requests",
+            "Total successful requests",
+            "Total requests with error",
+            "Overall success rate",
+            "Overall failure rate"
         ],
         "Value": [
-            round(avg_response, 2),
-            round(min_response, 2),
-            round(max_response, 2),
-            round(median_response, 2),
-            above_threshold_pct / 100,
-            below_threshold_pct / 100
+            avg_response,
+            min_response,
+            max_response,
+            median_response,
+            above_threshold_pct,  # Will show as percentage
+            below_threshold_pct,   # Will show as percentage
+            total_requests,
+            total_successes,
+            total_failures,
+            overall_success_rate,  # Will show as percentage
+            overall_failure_rate   # Will show as percentage
         ]
     })
 
+    # Write to Excel
     stats_df.to_excel(writer, index=False, sheet_name="Stats")
     worksheet = writer.sheets["Stats"]
 
-    # Column widths
-    worksheet.column_dimensions['A'].width = 50
-    worksheet.column_dimensions['B'].width = 25
+    # Set column widths
+    worksheet.column_dimensions['A'].width = 35  # Metric column
+    worksheet.column_dimensions['B'].width = 25  # Value column
 
-    # Styles
-    thin_border = Border(
-        left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin')
-    )
-    header_fill = PatternFill(start_color='003366', end_color='003366', fill_type='solid')
-    header_font = Font(bold=True, color='FFFFFF', size=16)
+    # Define styles
+    header_fill = PatternFill(start_color='002060', end_color='002060', fill_type='solid')
+    header_font = Font(color='FFFFFF', bold=True, size=12)
     center_align = Alignment(horizontal='center', vertical='center')
+    border = Border(left=Side(style='thin'), 
+                  right=Side(style='thin'), 
+                  top=Side(style='thin'), 
+                  bottom=Side(style='thin'))
 
-    for row in worksheet.iter_rows(min_row=1, max_row=7, min_col=1, max_col=2):
-        for cell in row:
-            cell.border = thin_border
-            if cell.row == 1:
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = center_align
-            elif cell.column_letter == 'B':
-                cell.alignment = center_align
+    # Apply header style
+    for cell in worksheet[1]:  # Header row
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center_align
+        cell.border = border
 
-    for row in worksheet.iter_rows(min_row=2, max_col=2, max_row=7):
-        metric_cell, value_cell = row
-        if "Percent" in metric_cell.value:
+    # Apply formatting by absolute row position
+    for row_idx in range(2, worksheet.max_row + 1):
+        metric_cell = worksheet.cell(row=row_idx, column=1)
+        value_cell = worksheet.cell(row=row_idx, column=2)
+        
+        # Apply borders and alignment to all cells
+        metric_cell.border = border
+        value_cell.border = border
+        value_cell.alignment = center_align
+        
+        # Force formatting based on Excel row number (1-based)
+        if row_idx in [6, 7]:  # Percent threshold rows (rows 6-7 in Excel)
             value_cell.number_format = '0.00%'
-        else:
-            value_cell.number_format = '#,##0.0'
+        elif row_idx in [11, 12]:  # Rate rows (rows 11-12 in Excel)
+            value_cell.number_format = '0.00%'
+        elif row_idx in [2, 3, 4, 5]:  # Response time rows (rows 2-5)
+            value_cell.number_format = '0.00'
+        else:  # Count rows (rows 8-10)
+            value_cell.number_format = '#,##0'
 
 
 def daily_averages_sheet(writer, df):
+    # Convert timestamp to date and create Date column
     df["Date"] = pd.to_datetime(df["Timestamp"]).dt.date
+    
+    # Perform aggregations
     daily_stats_df = df.groupby("Date").agg({
-        "Response time": ["mean", "min", "max", "median", 
-                           lambda x: (x >= 3000).mean() * 100, 
-                           lambda x: (x < 3000).mean() * 100]
+        "Response time": ["mean", "min", "max", "median"],
+        "Threshold": "mean",  # This gives the proportion below threshold
+        "Total Requests": "sum",
+        "Successes": "sum",
+        "Failures": "sum"
     })
+
+    # Calculate percentages
+    percent_below = daily_stats_df[("Threshold", "mean")]
+    percent_above = 1 - percent_below
+
+    # Compute success/failure rates
+    daily_stats_df[("Success Rate", "")] = (
+        daily_stats_df[("Successes", "sum")] / daily_stats_df[("Total Requests", "sum")]
+    )
+    daily_stats_df[("Failure Rate", "")] = (
+        daily_stats_df[("Failures", "sum")] / daily_stats_df[("Total Requests", "sum")]
+    )
+
+    # Flatten the multi-index columns
     daily_stats_df.columns = [
         "Average response time",
         "Fastest response time",
         "Slowest response time",
         "Median response time",
-        "Percent above threshold (>= 3000 ms)",
-        "Percent below threshold (< 3000 ms)"
+        "Percent below threshold (< 3000 ms)",
+        "Total requests",
+        "Total successes",
+        "Total errors",
+        "Overall success rate (%)",
+        "Overall failure rate (%)"
     ]
-    daily_stats_df = daily_stats_df.reset_index().round(2)
+    
+    # Add the above-threshold percentage
+    daily_stats_df["Percent above threshold (>= 3000 ms)"] = percent_above
+
+    # Reset index to make Date a column and define column order
+    daily_stats_df = daily_stats_df.reset_index()
+    column_order = [
+        "Date",
+        "Average response time",
+        "Fastest response time",
+        "Slowest response time",
+        "Median response time",
+        "Percent below threshold (< 3000 ms)",
+        "Percent above threshold (>= 3000 ms)",
+        "Total requests",
+        "Total successes",
+        "Total errors",
+        "Overall success rate (%)",
+        "Overall failure rate (%)"
+    ]
+    
+    # Select and reorder columns
+    daily_stats_df = daily_stats_df[column_order]
+    
+    # Write to Excel
     daily_stats_df.to_excel(writer, index=False, sheet_name="Daily averages")
 
     # Take care of formatting
     worksheet = writer.sheets["Daily averages"]
 
-    worksheet.column_dimensions['A'].width = 20
-    worksheet.column_dimensions['B'].width = 25
-    worksheet.column_dimensions['C'].width = 25
-    worksheet.column_dimensions['D'].width = 25
-    worksheet.column_dimensions['E'].width = 25
-    worksheet.column_dimensions['F'].width = 30
-    worksheet.column_dimensions['G'].width = 30
+    # Column-specific widths
+    column_widths = [
+        18, 20, 20, 20, 20, 20, 18, 20, 20, 18, 18, 18
+    ]
 
-    center_align = Alignment(horizontal='center', vertical='center')
+    # Set column widths
+    for i, width in enumerate(column_widths, 1):
+        worksheet.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
 
-    for row in worksheet:
+    # Define styles
+    header_fill = PatternFill(start_color='002060', end_color='002060', fill_type='solid')
+    header_font = Font(color='FFFFFF', bold=True, size=12)
+    border = Border(left=Side(style='thin'), 
+                right=Side(style='thin'), 
+                top=Side(style='thin'), 
+                bottom=Side(style='thin'))
+
+    # Number formats
+    time_format = '0.00'
+    count_format = '0'
+    percent_format = '0.00%'
+
+    # Apply header style
+    for cell in worksheet[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.border = border
+        cell.alignment = Alignment(wrap_text=True, vertical='center', horizontal='center')
+
+    # Apply data styles
+    for row in worksheet.iter_rows(min_row=2):
         for cell in row:
-            cell.alignment = center_align
+            cell.border = border
+            
+            # Apply specific number formats based on column
+            col_letter = cell.column_letter
+            col_idx = cell.column
+            
+            # Date column (A)
+            if col_idx == 1:
+                cell.number_format = 'YYYY-MM-DD'
+            
+            # Time measurement columns (B-E)
+            elif 2 <= col_idx <= 5:
+                cell.number_format = time_format
+            
+            # Percentage columns (F,G,J,K)
+            elif col_idx in [6, 7, 11, 12]:
+                cell.number_format = percent_format
+            
+            # Count columns (H,I)
+            elif col_idx in [8, 9, 10]:
+                cell.number_format = count_format
+
 
 
 def pivot_table(writer, df):
     df["Date"] = pd.to_datetime(df["Timestamp"]).dt.date
     df["Hour"] = pd.to_datetime(df["Timestamp"]).dt.hour
+    
+    # Enhanced aggregation
     pivot_df = df.groupby(["Date", "Hour"]).agg(
-        total=("Threshold", "count"),
-        under_threshold=("Threshold", "sum")
+        total_samples=("Threshold", "count"),
+        under_threshold=("Threshold", "sum"),
+        total_requests=("Total Requests", "sum"),
+        total_successes=("Successes", "sum"),
+        total_failures=("Failures", "sum")
     ).reset_index()
 
-    pivot_df["over_threshold"] = pivot_df["total"] - pivot_df["under_threshold"]
-    pivot_df["% under"] = (pivot_df["under_threshold"] / pivot_df["total"]) * 100
-    pivot_df["% over"] = 100 - pivot_df["% under"]
+    # Convert hour numbers to time intervals
+    pivot_df["Time Interval"] = pivot_df["Hour"].apply(
+        lambda x: f"{x}:00 - {x+1}:00" if x < 23 else "23:00 - 0:00"
+    )
+    
+    # Calculate derived metrics
+    pivot_df["over_threshold"] = pivot_df["total_samples"] - pivot_df["under_threshold"]
+    pivot_df["% under"] = pivot_df["under_threshold"] / pivot_df["total_samples"]
+    pivot_df["% over"] = 1 - pivot_df["% under"]
+    pivot_df["success_rate"] = pivot_df["total_successes"] / pivot_df["total_requests"]
+    pivot_df["failure_rate"] = pivot_df["total_failures"] / pivot_df["total_requests"]
 
+    # Reorder and select columns
+    pivot_df = pivot_df[[
+        "Date", "Time Interval",
+        "total_samples",
+        "under_threshold", "over_threshold", "% under", "% over",
+        "total_requests",
+        "total_successes", "total_failures",
+        "success_rate", "failure_rate"
+    ]]
+    
+    # Write to Excel
     pivot_df.to_excel(writer, sheet_name="Pivot", index=False)
-
-    # Take care of formatting
-    worksheet = writer.sheets["Pivot"]
-
-    worksheet.column_dimensions['A'].width = 20
-    worksheet.column_dimensions['B'].width = 15
-    worksheet.column_dimensions['C'].width = 15
-    worksheet.column_dimensions['D'].width = 25
-    worksheet.column_dimensions['E'].width = 25
-    worksheet.column_dimensions['F'].width = 20
-    worksheet.column_dimensions['G'].width = 20
-
-    center_align = Alignment(horizontal='center', vertical='center')
-
-    for row in worksheet:
-        for cell in row:
-            cell.alignment = center_align
-
+    
+    # Apply formatting
+    if isinstance(writer, pd.ExcelWriter):
+        worksheet = writer.sheets["Pivot"]
+        
+        # Define styles
+        header_fill = PatternFill(start_color='002060', end_color='002060', fill_type='solid')
+        header_font = Font(color='FFFFFF', bold=True, size=12)
+        center_alignment = Alignment(horizontal='center', vertical='center')
+        border = Border(left=Side(style='thin'), 
+                      right=Side(style='thin'), 
+                      top=Side(style='thin'), 
+                      bottom=Side(style='thin'))
+        
+        # Set column widths (updated for time interval column)
+        column_widths = [12, 18, 12, 15, 15, 12, 12, 15, 15, 15, 15, 15]
+        for i, width in enumerate(column_widths, 1):
+            worksheet.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
+        
+        # Apply header style
+        for cell in worksheet[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_alignment
+            cell.border = border
+        
+        # Apply data styles
+        for row in worksheet.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = center_alignment
+                cell.border = border
+                
+                # Apply number formatting
+                col_idx = cell.column
+                if col_idx in [6, 7, 11, 12]:  # Percentage columns (shifted right by 1)
+                    cell.number_format = '0.00%'
+                elif col_idx in [3, 4, 5, 8, 9, 10]:  # Count columns
+                    cell.number_format = '0'
+                elif col_idx == 1:  # Date column
+                    cell.number_format = 'YYYY-MM-DD'
+                # Time Interval column (col_idx=2) keeps text format
 
 
 # --- Entry Point ---
@@ -431,7 +625,7 @@ def main():
             #data = get_service_performance(service_id, 'builtin:service.response.time')
             metrics = get_all_service_metrics(service_id)
             print (f"Obtained data for service {service_name}. Will create Excel file...\n")
-            # output_to_screen_and_file(service_name, service_id, metrics)
+            output_to_screen_and_file(service_name, service_id, metrics)
             output_to_excel(service_name, metrics)
             print (f"Excel file for service {service_name} created successfully\n")
             # poll_response_time(service_name, service_id, THRESHOLD_MS)
