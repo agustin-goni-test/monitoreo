@@ -26,6 +26,7 @@ SERVICE_MAP = {
 # --- Functions ---
 
 
+
 def get_service_performance(service_id, metric_selector):
     """
     Fetch metrics for a given service from Dynatrace.
@@ -65,6 +66,18 @@ def poll_response_time(service_name, service_id, threshold):
     """
     Fetch average response time over the last 5 minutes and compare against threshold.
     """
+
+    # Get current timestamp for logging
+    from datetime import datetime
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+     # Initialize log file if first run
+    try:
+        with open(f'{OUTPUT_FOLDER}polling_results.txt', 'x') as f:
+            f.write(f"Polling started at: {current_time}\n")
+    except FileExistsError:
+        pass  # File already exists, no need to initialize
+
     # Query last 5 minutes data from Dynatrace
     url = f'https://{ENV_ID}.live.dynatrace.com/api/v2/metrics/query'
     headers = {
@@ -74,7 +87,7 @@ def poll_response_time(service_name, service_id, threshold):
         'metricSelector': 'builtin:service.response.time',
         'resolution': '1m',
         'entitySelector': f'entityId({service_id})',
-        'from': 'now-30m',
+        'from': 'now-5m',
         'to': 'now'
     }
 
@@ -91,28 +104,40 @@ def poll_response_time(service_name, service_id, threshold):
         values = [v for v in series['values'] if v is not None]
 
         if not values:
-            print(f"No data available for service {service_id} in last 5 minutes.")
+            msg = f"{current_time} - No data available for service {service_id} in last 5 minutes."
+            print(msg)
+            with open('polling_results.txt', 'a') as f:
+                f.write(msg + '\n')
             return
         
         # Convert from microseconds to milliseconds
         values_ms = [v / 1000 for v in values]
 
-        # Caldular compliance rate
+        # Calculate compliance rate
         compliant_count = sum(1 for v in values_ms if v <= threshold)
         compliance_rate = compliant_count / len(values_ms)
 
-        # Calculate average in milliseconds (values are in microseconds)
+        # Calculate average in milliseconds
         avg_response_time = sum(values_ms) / len(values_ms)
 
-        print(f"Service {service_name}: Avg = {avg_response_time:.2f} ms, Compliance = {compliance_rate*100:.2f}%")
+        # Prepare log message
+        status = "OK" if (avg_response_time <= threshold and compliance_rate >= compliance_threshold) else "THRESHOLD EXCEEDED"
+        msg = (f"{current_time} - Service {service_name}: "
+               f"Avg = {avg_response_time:.2f} ms, "
+               f"Compliance = {compliance_rate*100:.2f}%, "
+               f"Status = {status}")
 
-        if avg_response_time <= threshold and compliance_rate >= compliance_threshold:
-            print(f"Service operating well.")
-        else:
-            print(f"THRESHOLD EXCEEDED!")
+        print(msg)
+        
+        # Append to log file
+        with open(f'{OUTPUT_FOLDER}polling_results.txt', 'a') as f:
+            f.write(msg + '\n')
 
-    except (KeyError, IndexError):
-        print(f"Unexpected data format received for service {service_id}.")
+    except (KeyError, IndexError) as e:
+        msg = f"{current_time} - Error processing data for service {service_id}: {str(e)}"
+        print(msg)
+        with open('polling_results.txt', 'a') as f:
+            f.write(msg + '\n')
 
 
 
@@ -234,12 +259,12 @@ def output_to_excel(service_name, metrics):
         rows.append({
             "Timestamp": time_str,
             "Response time": round(rt_ms, 2) if rt_ms is not None else None,
-            "Threshold": threshold_flag,
-            "Total Requests": int(req) if req is not None else None,
-            "Successes": int(success) if success is not None else None,
-            "Failures": int(failure) if failure is not None else None,
-            "Success Rate (%)": round(success_rate, 2) if success_rate is not None else None,
-            "Failure Rate (%)": round(failure_rate, 2) if failure_rate is not None else None
+            "Threshold": threshold_flag if rt_ms is not None else 1,
+            "Total Requests": int(req) if req is not None else 0,
+            "Successes": int(success) if success is not None else 0,
+            "Failures": int(failure) if failure is not None else 0,
+            "Success Rate (%)": round(success_rate, 2) if success_rate is not None else 1,
+            "Failure Rate (%)": round(failure_rate, 2) if failure_rate is not None else 0
         })
 
     df = pd.DataFrame(rows)
@@ -628,27 +653,27 @@ def main():
             output_to_screen_and_file(service_name, service_id, metrics)
             output_to_excel(service_name, metrics)
             print (f"Excel file for service {service_name} created successfully\n")
-            # poll_response_time(service_name, service_id, THRESHOLD_MS)
         except Exception as e:
             print(f"Error processing service {service_name}: {e}")
     
     print("\n")
 
-    # THRESHOLD_MS = 3000  # example threshold in milliseconds, adjust as needed
-    # print("\nPolling started. Press Ctrl+C to stop.\n")
+    THRESHOLD_MS = 3000  # example threshold in milliseconds, adjust as needed
+    print("\nPolling started. Press Ctrl+C to stop.\n")
 
-    # try:
-    #     while True:
-    #         for service_name, service_id in SERVICE_MAP.items():
-    #             try:
-    #                 poll_response_time(service_name, service_id, THRESHOLD_MS)
-    #             except Exception as e:
-    #                 print(f"Error processing service {service_name}: {e}")
-    #         print("-" * 60)
-    #         time.sleep(10)  # wait 30 seconds before polling again
+    try:
+        while True:
+            for service_name, service_id in SERVICE_MAP.items():
+                try:
+                    poll_response_time(service_name, service_id, THRESHOLD_MS)
+                except Exception as e:
+                    print(f"Error processing service {service_name}: {e}")
+            print("-" * 60)
+            time.sleep(30)  # wait 30 seconds before polling again
 
-    # except KeyboardInterrupt:
-    #     print("\nPolling stopped by user.") 
+    except KeyboardInterrupt:
+        print("\nPolling stopped by user.") 
+    
 
 
 if __name__ == "__main__":
