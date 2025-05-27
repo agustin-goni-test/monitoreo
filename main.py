@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 import os
 import time
 from openpyxl.styles import Alignment, Border, Side, PatternFill, Font
+from openpyxl import Workbook
 import openpyxl
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 # --- Configuration ---
 
@@ -20,13 +22,25 @@ OUTPUT_FOLDER = "output/"
 SERVICE_MAP = {
     "ComercioTransaccionesController": "SERVICE-FD9343224D905203",
     "AbonosController": "SERVICE-123E236BA4855F4A"
+    # "TransaccionesMultiserviciosController": "SERVICE-E77A12909369A78D"
+}
+
+DATABASE_MAP = {
+    "mc_tlog_historia": "SERVICE-0604902B4FAD42B6"
+}
+
+DB_METRICS = {
+    "Total Connections": "builtin:service.dbconnections.total",
+    "Failure Rate": "builtin:service.dbconnections.failureRate",
+    "Success Rate": "builtin:service.dbconnections.successRate",
+    "Child Call Count": "builtin:service.dbChildCallCount"
 }
 
 
 # --- Functions ---
 
 
-
+# Methods to get service performance
 def get_service_performance(service_id, metric_selector):
     """
     Fetch metrics for a given service from Dynatrace.
@@ -54,12 +68,144 @@ def get_all_service_metrics(service_id):
         "failure_count": get_service_performance(service_id, 'builtin:service.errors.server.count'),
     }
 
+def get_metric_data(service_id, metric_key):
+    url = f"https://{ENV_ID}.live.dynatrace.com/api/v2/metrics/query"
+    headers = {
+        "Authorization": f"Api-Token {API_TOKEN}"
+    }
+    params = {
+        "metricSelector": metric_key,
+        "entitySelector": f"entityId({service_id})",
+        "from": "now-7d",  # Or adjust timeframe
+        "to": "now",
+        "resolution": "1m"
+    }
+    response = requests.get(url, headers=headers, params=params)
+    response.raise_for_status()
+    return response.json()
+
+def parse_metric_timeseries(data):
+    series = data['result'][0]['data'][0]
+    timestamps = series['timestamps']
+    values = series['values']
+    return {ts: val for ts, val in zip(timestamps, values)}
+
+def output_database_metrics_to_excel(db_name, service_id):
+    print(f"Gathering DB metrics for {db_name}...")
+    metrics_data = {}
+
+    # Fetch and parse each metric
+    for label, metric_key in DB_METRICS.items():
+        try:
+            raw_data = get_metric_data(service_id, metric_key)
+            metrics_data[label] = parse_metric_timeseries(raw_data)
+        except Exception as e:
+            print(f"Error fetching {label} for {db_name}: {e}")
+            metrics_data[label] = {}
+
+    # Merge all timestamps
+    all_timestamps = sorted(set(ts for d in metrics_data.values() for ts in d))
+
+    rows = []
+    for ts in all_timestamps:
+        time_str = datetime.datetime.fromtimestamp(ts / 1000).strftime('%Y-%m-%d %H:%M:%S')
+        row = {
+            "Timestamp": time_str
+        }
+        for label in DB_METRICS.keys():
+            val = metrics_data[label].get(ts)
+            row[label] = round(val, 4) if val is not None else None
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+
+    # Write to Excel
+    timestamp_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{OUTPUT_FOLDER}{db_name}_db_metrics_{timestamp_suffix}.xlsx"
+
+    with pd.ExcelWriter(filename, engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="Raw DB Metrics", index=False)
+
+        # Format columns
+        worksheet = writer.sheets["Raw DB Metrics"]
+        for col in worksheet.columns:
+            for cell in col:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Compute correlations (ignore NaNs)
+    try:
+        corr_success = df["Total Connections"].corr(df["Success Rate"])
+        corr_failure = df["Total Connections"].corr(df["Failure Rate"])
+
+        print(f"Correlation (Total Connections ↔ Success Rate): {corr_success:.4f}")
+        print(f"Correlation (Total Connections ↔ Failure Rate): {corr_failure:.4f}")
+    except Exception as e:
+        print(f"Could not compute correlations: {e}")
 
 def parse_metric_data(data):
     series = data['result'][0]['data'][0]
     timestamps = series['timestamps']
     values = series['values']
     return {ts: val for ts, val in zip(timestamps, values)}
+
+def list_request_names_for_service(service_name, service_id):
+    print(f"Service name: {service_name}\n")
+    url = f"https://{ENV_ID}.live.dynatrace.com/api/v2/metrics/query"
+    headers = {
+        "Authorization": f"Api-Token {API_TOKEN}"
+    }
+
+    params = {
+        "metricSelector": 'builtin:service.response.time',
+        "entitySelector": f"entityId({service_id})",
+        "from": "now-15m",
+        "to": "now",
+        "resolution": "1m"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        print(f"\n=== Request Names for Service '{service_name}' ===")
+        # for series in data.get("result", [])[0].get("data", []):
+        #     dimension = series.get("dimensions", [])[0]
+        #     if dimension:
+        #         print(f"- {dimension}")
+        print(data)
+        print("\n")
+
+    except Exception as e:
+        print(f"Error fetching request names for {service_name}: {e}")
+
+def get_metric_dimensions_for_services(services: dict):
+    url = f"https://{ENV_ID}.live.dynatrace.com/api/v2/metrics/{'builtin:service.response.time'}"
+    headers = {
+        "Authorization": f"Api-Token {API_TOKEN}"
+    }
+
+    for service_name, service_id in services.items():
+        print(f"\n=== Service: {service_name} (ID: {service_id}) ===")
+
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            dimensions = data.get("dimensionDefinitions", [])
+            if not dimensions:
+                print("No dimensions found.")
+                continue
+
+            print(f"Dimensions for metric '{'builtin:service.response.time'}':")
+            for d in dimensions:
+                key = d.get("key")
+                name = d.get("name")
+                print(f"- {key} ({name})")
+
+        except Exception as e:
+            print(f"Error fetching dimensions for {service_name}: {e}")
 
 
 def poll_response_time(service_name, service_id, threshold):
@@ -87,7 +233,7 @@ def poll_response_time(service_name, service_id, threshold):
         'metricSelector': 'builtin:service.response.time',
         'resolution': '1m',
         'entitySelector': f'entityId({service_id})',
-        'from': 'now-5m',
+        'from': 'now-1d',
         'to': 'now'
     }
 
@@ -658,21 +804,29 @@ def main():
     
     print("\n")
 
-    THRESHOLD_MS = 3000  # example threshold in milliseconds, adjust as needed
-    print("\nPolling started. Press Ctrl+C to stop.\n")
+    print("Ahora analizar las DB...")
+    for db_name, service_id in DATABASE_MAP.items():
+        output_database_metrics_to_excel(db_name, service_id)
 
-    try:
-        while True:
-            for service_name, service_id in SERVICE_MAP.items():
-                try:
-                    poll_response_time(service_name, service_id, THRESHOLD_MS)
-                except Exception as e:
-                    print(f"Error processing service {service_name}: {e}")
-            print("-" * 60)
-            time.sleep(30)  # wait 30 seconds before polling again
+    # THRESHOLD_MS = 3000  # example threshold in milliseconds, adjust as needed
+    # print("\nPolling started. Press Ctrl+C to stop.\n")
 
-    except KeyboardInterrupt:
-        print("\nPolling stopped by user.") 
+    # try:
+    #     while True:
+    #         for service_name, service_id in SERVICE_MAP.items():
+    #             try:
+    #                 poll_response_time(service_name, service_id, THRESHOLD_MS)
+    #             except Exception as e:
+    #                 print(f"Error processing service {service_name}: {e}")
+    #         print("-" * 60)
+    #         time.sleep(30)  # wait 30 seconds before polling again
+
+    # except KeyboardInterrupt:
+    #     print("\nPolling stopped by user.") 
+    # for service_name, service_id in SERVICE_MAP.items():
+    #     list_request_names_for_service(service_name, service_id)
+    
+    # get_metric_dimensions_for_services(SERVICE_MAP)
     
 
 
