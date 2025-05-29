@@ -1,0 +1,40 @@
+debug: true
+
+timeframes:
+  services:
+    from_time: "now-7d"
+    to_time: "now"
+    resolution: "1m"
+  databases:
+    from_time: "now-7d"
+    to_time: "now"
+    resolution: "5m"
+
+services:
+  - name: "ComercioTransaccionesController"
+    id: "SERVICE-FD9343224D905203"
+    threshold_ms: 3000
+    metrics:
+      response_time: "builtin:service.response.time"
+      request_count: "builtin:service.requestCount.total"
+      success_count: "builtin:service.errors.server.successCount"
+      failure_count: "builtin:service.errors.server.count"
+
+  - name: "AbonosController"
+    id: "SERVICE-123E236BA4855F4A"
+    threshold_ms: 3000
+    metrics:
+      response_time: "builtin:service.response.time"
+      request_count: "builtin:service.requestCount.total"
+      success_count: "builtin:service.errors.server.successCount"
+      failure_count: "builtin:service.errors.server.count"
+
+databases:
+  - name: "mc_tlog_historia"
+    id: "SERVICE-0604902B4FAD42B6"
+    metrics:
+      total_connections: "builtin:service.dbconnections.total"
+      failure_rate: "builtin:service.dbconnections.failureRate"
+      success_rate: "builtin:service.dbconnections.successRate"
+      failed_connections: "builtin:service.dbconnections.failure"
+  
