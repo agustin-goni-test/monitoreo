@@ -102,6 +102,10 @@ class DynatraceClient:
         # Return a results matrix
         return data_matrix
     
+    def read_all_database_metrics_default(self, service):
+        print(f"Getting metrics for database {service.name} for default period...")
+        period = "default"
+        return self._read_all_service_metrics(service, period)
 
     def get_database_metrics(self, db_id):
         pass  # implement API call
@@ -111,6 +115,11 @@ class DynatraceClient:
 
     def read_all_service_metrics_default(self, service):
         print(f"Getting metrics for service {service.name} for default period...")
+        period = "default"
+        return self._read_all_service_metrics(service, period)
+    
+    def read_all_calculated_service_metrics_default(self, service):
+        print(f"Getting calculated metrics for service {service.name} for default period...")
         period = "default"
         return self._read_all_service_metrics(service, period)
     

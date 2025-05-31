@@ -35,8 +35,14 @@ def main():
     #     output_manager = OutputManager()
     #     output_manager.default_output(service.name, data_matrix)
 
-       
+    for database in config.databases:
+        print(f"\nQuerying database: {database.name}")
 
+        data_matrix = client.read_all_database_metrics_default(database)
+        output_manager = OutputManager()
+        output_manager.default_output(database.name, data_matrix)
+
+       
 if __name__ == "__main__":
     main()
 

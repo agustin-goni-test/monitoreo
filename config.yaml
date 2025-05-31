@@ -1,4 +1,4 @@
-debug: true
+debug: false
 
 output_format:
   Screen: false
@@ -49,8 +49,8 @@ databases:
   - name: "mc_tlog_historia"
     id: "SERVICE-0604902B4FAD42B6"
     metrics:
-      total_connections: "builtin:service.dbconnections.total"
+      total_connections_count: "builtin:service.dbconnections.total"
       failure_rate: "builtin:service.dbconnections.failureRate"
       success_rate: "builtin:service.dbconnections.successRate"
-      failed_connections: "builtin:service.dbconnections.failure"
+      failed_connections_count: "builtin:service.dbconnections.failure"
   
