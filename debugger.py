@@ -4,7 +4,6 @@ class Debugger:
 
     @staticmethod
     def echo_configuration():
-
         config = get_config()
 
         print("=== Loaded Configuration ===")

@@ -16,7 +16,7 @@ load_dotenv()
 API_TOKEN = os.getenv("DYNATRACE_API_TOKEN")
 
 ENV_ID = 'kae68552'
-OUTPUT_FOLDER = "output/"
+OUTPUT_FOLDER = "output_file/"
 
 # Service name → ID mapping
 SERVICE_MAP = {
@@ -51,9 +51,9 @@ def get_service_performance(service_id, metric_selector):
     }
     params = {
         'metricSelector': metric_selector,
-        'resolution': '1h',
+        'resolution': '1m',
         'entitySelector': f'entityId({service_id})',
-        'from': 'now-365d',
+        'from': 'now-7d',
         'to': 'now'
     }
     response = requests.get(url, headers=headers, params=params)

@@ -1,8 +1,8 @@
-debug: true
+debug: false
 
 timeframes:
   services:
-    from_time: "now-7d"
+    from_time: "now-15m"
     to_time: "now"
     resolution: "1m"
   databases:
@@ -19,6 +19,7 @@ services:
       request_count: "builtin:service.requestCount.total"
       success_count: "builtin:service.errors.server.successCount"
       failure_count: "builtin:service.errors.server.count"
+
 
   - name: "AbonosController"
     id: "SERVICE-123E236BA4855F4A"
