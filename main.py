@@ -31,7 +31,7 @@ def main():
     for service in config.services:
         print(f"\nQuerying service: {service.name}")
         
-        data_matrix = client.read_all_service_metrics(service)
+        data_matrix = client.read_all_service_metrics_default(service)
         output_manager = OutputManager()
         output_manager.default_output(service.name, data_matrix)
 
