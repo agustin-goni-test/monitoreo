@@ -5,6 +5,19 @@ from pydantic import BaseModel, field_validator
 
 # -- Define your models (same as before) --
 
+class OutputFormatConfig(BaseModel):
+    Screen: bool = True
+    CSV: bool = False
+    All: bool = False
+    Default: str = "Screen"
+
+    @field_validator("Default")
+    def validate_default(cls, v):
+        allowed = ["Screen", "CSV"]
+        if v not in allowed:
+            raise ValueError(f"Invalid default output: {v}. Allowed: {allowed}")
+        return v
+
 class TimeFrameConfig(BaseModel):
     from_time: str
     to_time: str
@@ -26,6 +39,7 @@ class FullConfig(BaseModel):
     timeframes: Dict[Literal["services", "databases"], TimeFrameConfig]
     services: List[ServiceMetricConfig]
     databases: List[DatabaseMetricConfig]
+    output_format: OutputFormatConfig = OutputFormatConfig()
 
 
 # -- Load config once and expose it here --

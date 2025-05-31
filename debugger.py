@@ -22,3 +22,9 @@ class Debugger:
             print(f"  - {db.name} ({db.id})")
             for metric_name, metric_id in db.metrics.items():
                 print(f"      * {metric_name}: {metric_id}")
+
+        print("\nOutput Format Configuration:")
+        print(f"  Screen: {config.output_format.Screen}")
+        print(f"  CSV: {config.output_format.CSV}")
+        print(f"  All: {config.output_format.All}")
+        print(f"  Default: {config.output_format.Default}")

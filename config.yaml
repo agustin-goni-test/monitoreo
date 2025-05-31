@@ -1,8 +1,14 @@
 debug: false
 
+output_format:
+  Screen: false
+  CSV: false
+  All: true
+  Default: Screen
+
 timeframes:
   services:
-    from_time: "now-15m"
+    from_time: "now-30m"
     to_time: "now"
     resolution: "1m"
   databases:
