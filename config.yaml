@@ -3,7 +3,8 @@ debug: false
 output_format:
   Screen: false
   CSV: false
-  All: true
+  Excel: true
+  All: false
   Default: Screen
 
 timeframes:

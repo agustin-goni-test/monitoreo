@@ -8,6 +8,7 @@ from pydantic import BaseModel, field_validator
 class OutputFormatConfig(BaseModel):
     Screen: bool = True
     CSV: bool = False
+    Excel: bool = False
     All: bool = False
     Default: str = "Screen"
 

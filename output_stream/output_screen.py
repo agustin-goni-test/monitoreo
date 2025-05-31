@@ -1,7 +1,7 @@
 from .output_writer import OutputWriter
 
 class ScreenWriter(OutputWriter):
-    def write_default(self, service_name: str, data_matrix: list[list]):
+    def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
         print("Writing to the screen...")
         print(f"Service Name: {service_name}")
         

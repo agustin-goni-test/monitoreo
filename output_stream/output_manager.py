@@ -1,5 +1,6 @@
 from .output_writer import OutputWriter
 from .output_screen import ScreenWriter
+from .output_excel import ExcelWriter
 from .output_csv import CSVWriter  # Add any other writers as needed
 from config_loader import get_config
 
@@ -11,6 +12,7 @@ class OutputManager:
         available_writers = {
             "Screen": ScreenWriter,
             "CSV": CSVWriter,
+            "Excel": ExcelWriter
             # add other writers here later (e.g., JSONWriter)
         }
 
@@ -40,5 +42,9 @@ class OutputManager:
 
     def default_output(self, service_name: str, data_matrix: list[list]):
         for writer in self.writers:
-            writer.write_default(service_name, data_matrix)
+            if isinstance(writer, ExcelWriter):
+                sheet_name = "Default"  # or generate it dynamically if needed
+                writer.write_default(service_name, data_matrix, sheet_name=sheet_name)
+            else:
+                writer.write_default(service_name, data_matrix)
 

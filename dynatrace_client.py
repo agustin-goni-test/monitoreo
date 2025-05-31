@@ -110,6 +110,7 @@ class DynatraceClient:
         pass  # implement polling logic
 
     def read_all_service_metrics_default(self, service):
+        print(f"Getting metrics for service {service.name} for default period...")
         period = "default"
         return self._read_all_service_metrics(service, period)
     

@@ -3,7 +3,7 @@ import csv
 import os
 
 class CSVWriter(OutputWriter):
-    def write_default(self, service_name: str, data_matrix: list[list]):
+    def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
         output_dir = "output_files"  # changed folder name here
         os.makedirs(output_dir, exist_ok=True)  # create folder if missing
         
