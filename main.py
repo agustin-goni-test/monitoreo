@@ -14,6 +14,7 @@ def main():
         Debugger.echo_configuration()
         
     client = get_dynatrace_client()
+    output_manager = OutputManager()
 
     # metric_name = 'calc:service.requestcount_abonos_byrange'
     # metric_name = 'calc:service.responsetimecaller_abonos_byrange'
@@ -28,20 +29,17 @@ def main():
     # Para servicio de transacciones
     # client.test_service_metrics(metric_name, "AbonosController", "SERVICE-FD9343224D905203", time_based=False)
 
-    # for service in config.services:
-    #     print(f"\nQuerying service: {service.name}")
+    for service in config.services:
+        print(f"\nQuerying service: {service.name}")
         
-    #     data_matrix = client.read_all_service_metrics_default(service)
-    #     output_manager = OutputManager()
-    #     output_manager.default_output(service.name, data_matrix)
+        data_matrix = client.read_all_service_metrics_default(service)
+        output_manager.default_output(service.name, data_matrix)
 
-    for database in config.databases:
-        print(f"\nQuerying database: {database.name}")
+    # for database in config.databases:
+    #     print(f"\nQuerying database: {database.name}")
 
-        data_matrix = client.read_all_database_metrics_default(database)
-        output_manager = OutputManager()
-        output_manager.default_output(database.name, data_matrix)
-
+    #     data_matrix = client.read_all_database_metrics_default(database)
+    #     output_manager.default_output(database.name, data_matrix)
        
 if __name__ == "__main__":
     main()

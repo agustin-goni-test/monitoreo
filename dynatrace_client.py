@@ -116,12 +116,12 @@ class DynatraceClient:
     def read_all_service_metrics_default(self, service):
         print(f"Getting metrics for service {service.name} for default period...")
         period = "default"
-        return self._read_all_service_metrics(service, period)
+        return self._read_all_service_metrics(service, period, metric_source="metrics")
     
-    def read_all_calculated_service_metrics_default(self, service):
-        print(f"Getting calculated metrics for service {service.name} for default period...")
-        period = "default"
-        return self._read_all_service_metrics(service, period)
+    # def read_all_calculated_service_metrics_default(self, service):
+    #     print(f"Getting calculated metrics for service {service.name} for default period...")
+    #     period = "default"
+    #     return self._read_all_service_metrics(service, period)
     
     def read_all_service_metrics_day(self, service):
         pass
@@ -135,37 +135,52 @@ class DynatraceClient:
     def read_all_service_metrics_year(self, service):
         pass
     
-    def _read_all_service_metrics(self, service, period):
+    def _read_all_service_metrics(self, service, period, metric_source="metrics"):
+
+        # Get the correct metrics dictionary
+        metrics_to_use = getattr(service, metric_source, {})
+        
+        # Always return at least the header structure
+        header = ["Timestamp"]
+        for metric_name in metrics_to_use.keys():
+            header.append(self._format_metric_header(metric_name))
+        
+        # Return early if no metrics
+        if not metrics_to_use:
+            return [header]
+
         metric_data = {}
         all_timestamps = set()
 
         # Fetch data for each metric
-        for metric_name, metric_id in service.metrics.items():
-            if period == "default":
-                metric_matrix = self.get_service_metrics_default(service.id, service.name, metric_id)
-            metric_type = self._get_metric_type(metric_name)
-
-            for row in metric_matrix:
-                timestamp, value = row
-                formatted_value = self._format_metric_value(metric_type, value)
-                all_timestamps.add(timestamp)
-                metric_data.setdefault(timestamp, {})[metric_name] = formatted_value
+        for metric_name, metric_id in metrics_to_use.items():
+            try:
+                if period == "default":
+                    metric_matrix = self.get_service_metrics_default(service.id, service.name, metric_id)
+                
+                metric_type = self._get_metric_type(metric_name)
+                
+                for row in metric_matrix:
+                    timestamp, value = row
+                    formatted_value = self._format_metric_value(metric_type, value)
+                    all_timestamps.add(timestamp)
+                    metric_data.setdefault(timestamp, {})[metric_name] = formatted_value
+            except Exception as e:
+                print(f"Error processing metric {metric_name}: {str(e)}")
+                continue
 
         # Build the final matrix
-        header = ["Timestamp"]
-        for metric_name in service.metrics.keys():
-            header.append(self._format_metric_header(metric_name))
         data_matrix = [header]
-
+        
         for timestamp in sorted(all_timestamps):
             readable_ts = self._format_timestamp(timestamp)
             row = [readable_ts]
-            for metric_name in service.metrics.keys():
+            for metric_name in metrics_to_use.keys():
                 value = metric_data.get(timestamp, {}).get(metric_name, "N/A")
                 row.append(value)
             data_matrix.append(row)
 
-        return data_matrix
+        return data_matrix if len(data_matrix) > 1 else [header]
     
     # Helper method to format the timestamps
     def _format_timestamp(self, ts):

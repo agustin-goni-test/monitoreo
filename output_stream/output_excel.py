@@ -67,7 +67,7 @@ class ExcelWriter(OutputWriter):
                 if fmt == "percentage":
                     cell.number_format = '0.00%'
                 elif fmt == "time":
-                    cell.number_format = '0.00 "seconds"'
+                    cell.number_format = '0.00'
                 elif fmt == "integer":
                     cell.number_format = '0'
                 # Timestamps and text: leave as is
