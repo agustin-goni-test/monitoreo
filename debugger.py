@@ -14,8 +14,15 @@ class Debugger:
         print("\nServices to Monitor:")
         for service in config.services:
             print(f"  - {service.name} ({service.id}) with threshold {service.threshold_ms}ms")
+            print("    Metrics:")
             for metric_name, metric_id in service.metrics.items():
                 print(f"      * {metric_name}: {metric_id}")
+            
+            # Corrected spelling and added check for non-empty dict
+            if hasattr(service, 'calculated_metrics') and service.calculated_metrics:
+                print("    Calculated Metrics:")
+                for calc_name, calc_id in service.calculated_metrics.items():
+                    print(f"      * {calc_name}: {calc_id}")
 
         print("\nDatabases to Monitor:")
         for db in config.databases:
@@ -26,5 +33,6 @@ class Debugger:
         print("\nOutput Format Configuration:")
         print(f"  Screen: {config.output_format.Screen}")
         print(f"  CSV: {config.output_format.CSV}")
+        print(f"  Excel: {config.output_format.Excel}")  # Added Excel as it's in your YAML
         print(f"  All: {config.output_format.All}")
         print(f"  Default: {config.output_format.Default}")

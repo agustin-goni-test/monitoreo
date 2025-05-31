@@ -1,4 +1,4 @@
-debug: false
+debug: true
 
 output_format:
   Screen: false
@@ -30,9 +30,11 @@ services:
       failure_rate: "builtin:service.errors.total.rate"
       server_failure_rate: "builtin:service.errors.server.rate"
       server_success_rate: "builtin:service.successes.server.rate"
-
-
-
+    calculated_metrics:
+      filter_details_response_time: "calc:service.responsetime_trxmediospago_filterdetails"
+      filter_details_request_count: "calc:service.requestcount_trxmediospago_filtersales"
+      filter_sales_response_time: "calc:service.responsetime_trxmediospago_filtersales"
+      filter_sales_request_count: "calc:service.requestcount_trxmediospago_filtersales"
 
   - name: "AbonosController"
     id: "SERVICE-123E236BA4855F4A"

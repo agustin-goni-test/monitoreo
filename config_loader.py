@@ -1,6 +1,6 @@
 import yaml
 from pathlib import Path
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, field_validator
 
 # -- Define your models (same as before) --
@@ -14,7 +14,7 @@ class OutputFormatConfig(BaseModel):
 
     @field_validator("Default")
     def validate_default(cls, v):
-        allowed = ["Screen", "CSV"]
+        allowed = ["Screen", "CSV", "Excel"]
         if v not in allowed:
             raise ValueError(f"Invalid default output: {v}. Allowed: {allowed}")
         return v
@@ -29,6 +29,7 @@ class ServiceMetricConfig(BaseModel):
     id: str
     threshold_ms: int
     metrics: Dict[str, str]
+    calculated_metrics: Optional[Dict[str, str]] = None
 
 class DatabaseMetricConfig(BaseModel):
     name: str

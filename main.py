@@ -28,14 +28,12 @@ def main():
     # Para servicio de transacciones
     # client.test_service_metrics(metric_name, "AbonosController", "SERVICE-FD9343224D905203", time_based=False)
 
-    for service in config.services:
-        print(f"\nQuerying service: {service.name}")
+    # for service in config.services:
+    #     print(f"\nQuerying service: {service.name}")
         
-        data_matrix = client.read_all_service_metrics_default(service)
-        output_manager = OutputManager()
-        output_manager.default_output(service.name, data_matrix)
-
-        
+    #     data_matrix = client.read_all_service_metrics_default(service)
+    #     output_manager = OutputManager()
+    #     output_manager.default_output(service.name, data_matrix)
 
        
 
