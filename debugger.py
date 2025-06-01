@@ -36,3 +36,8 @@ class Debugger:
         print(f"  Excel: {config.output_format.Excel}")  # Added Excel as it's in your YAML
         print(f"  All: {config.output_format.All}")
         print(f"  Default: {config.output_format.Default}")
+
+        print("\nPolling Configuration:")
+        print(f"  Resolution: {config.polling.resolution}")
+        print(f"  From Time: {config.polling.from_time}")
+        print(f"  To Time: {config.polling.to_time}")

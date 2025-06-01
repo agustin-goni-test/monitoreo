@@ -1,10 +1,10 @@
 debug: false
 
 output_format:
-  Screen: false
+  Screen: true
   CSV: false
-  Excel: true
-  All: false
+  Excel: false
+  All: true
   Default: Screen
 
 timeframes:
@@ -53,4 +53,9 @@ databases:
       failure_rate: "builtin:service.dbconnections.failureRate"
       success_rate: "builtin:service.dbconnections.successRate"
       failed_connections_count: "builtin:service.dbconnections.failure"
+
+polling:
+  resolution: "1m"
+  from_time: "now-15m"
+  to_time: "now"
   

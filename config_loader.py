@@ -40,12 +40,18 @@ class DatabaseMetricConfig(BaseModel):
     id: str
     metrics: Dict[str, str]
 
+class PollingConfig(BaseModel):
+    resolution: str
+    from_time: str
+    to_time: str
+
 class FullConfig(BaseModel):
     debug: bool = True
     timeframes: Dict[Literal["services", "databases"], TimeFrameConfig]
     services: List[ServiceMetricConfig]
     databases: List[DatabaseMetricConfig]
     output_format: OutputFormatConfig = OutputFormatConfig()
+    polling: PollingConfig
 
 
 # -- Load config once and expose it here --
