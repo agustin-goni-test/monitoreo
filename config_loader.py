@@ -31,6 +31,10 @@ class ServiceMetricConfig(BaseModel):
     metrics: Dict[str, str]
     calculated_metrics: Optional[Dict[str, str]] = None
 
+    def has_calculated_metrics(self) -> bool:
+        """Check if this service has calculated metrics defined."""
+        return self.calculated_metrics is not None and len(self.calculated_metrics) > 0
+
 class DatabaseMetricConfig(BaseModel):
     name: str
     id: str

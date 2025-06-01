@@ -35,11 +35,19 @@ def main():
         data_matrix = client.read_all_service_metrics_default(service)
         output_manager.default_output(service.name, data_matrix)
 
+        if service.has_calculated_metrics():
+            data_matrix2 = client.read_all_calculated_service_metrics_default(service)
+            output_manager.default_output(service.name, data_matrix2)
+        else:
+            print(f"Service {service.name} does not have any calculated metrics.")
+
     # for database in config.databases:
     #     print(f"\nQuerying database: {database.name}")
 
     #     data_matrix = client.read_all_database_metrics_default(database)
     #     output_manager.default_output(database.name, data_matrix)
+
+
        
 if __name__ == "__main__":
     main()

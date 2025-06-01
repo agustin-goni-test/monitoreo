@@ -118,10 +118,10 @@ class DynatraceClient:
         period = "default"
         return self._read_all_service_metrics(service, period, metric_source="metrics")
     
-    # def read_all_calculated_service_metrics_default(self, service):
-    #     print(f"Getting calculated metrics for service {service.name} for default period...")
-    #     period = "default"
-    #     return self._read_all_service_metrics(service, period)
+    def read_all_calculated_service_metrics_default(self, service):
+        print(f"Getting calculated metrics for service {service.name} for default period...")
+        period = "default"
+        return self._read_all_service_metrics(service, period, metric_source="calculated_metrics")
     
     def read_all_service_metrics_day(self, service):
         pass
