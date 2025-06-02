@@ -22,18 +22,35 @@ def main():
     client = get_dynatrace_client()
     output_manager = OutputManager()
 
+    # for metric in poller.metrics:
+    #     # service_name = metric.service_name
+    #     # service_id = metric.service_id
+    #     # metric_id = metric.metric_id
+    #     # resolution = config.polling.resolution
+    #     # from_time = config.polling.from_time
+    #     # to_time = config.polling.to_time
+    #     # data_matrix = client.get_service_metrics(service_id, service_name, metric_id, resolution, from_time, to_time)
+    #     # print(data_matrix)
+    #     average = poller.poll_metric_from_service(metric)
+
+        # print(f"Service: {metric.service_name}, - Metriuc: {metric.metric_name} - Average time: {average/1000} seconds")
+        
+        #client.get_service_metrics
+
     # metric_name = 'calc:service.requestcount_abonos_byrange'
     # metric_name = 'calc:service.responsetimecaller_abonos_byrange'
     # metric_name = 'calc:service.requestcount_trxmediospago_filterdetails'
     # metric_name = 'calc:service.responsetime_trxmediospago_filterdetails'
     # metric_name = 'calc:service.requestcount_trxmediospago_filterdetails'
+    # metric_name = 'calc:service.successfulrequests_trxmediospago_filtersales'
+    metric_name = 'calc:service.failurerate_trxmediospago_filtersales'
 
 
     # Para servicio de Abonos
     # client.test_service_metrics(metric_name, "AbonosController", "SERVICE-123E236BA4855F4A", time_based=True)
 
     # Para servicio de transacciones
-    # client.test_service_metrics(metric_name, "AbonosController", "SERVICE-FD9343224D905203", time_based=False)
+    client.test_service_metrics(metric_name, "ComercioTransaccionesController", "SERVICE-FD9343224D905203", time_based=False)
 
     # for service in config.services:
     #     print(f"\nQuerying service: {service.name}")

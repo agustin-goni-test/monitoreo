@@ -1,10 +1,10 @@
-debug: true
+debug: false
 
 output_format:
   Screen: true
   CSV: false
   Excel: false
-  All: true
+  All: false
   Default: Screen
 
 timeframes:

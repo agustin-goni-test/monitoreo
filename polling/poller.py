@@ -1,19 +1,34 @@
 from typing import List, Dict
 from dataclasses import dataclass
 from config_loader import get_config
+from dynatrace_client import get_dynatrace_client
 from debugger import Debugger
+from typing import List, Tuple, Optional
+import statistics
 
 @dataclass
 class PollingMetric:
     service_name: str
+    service_id: str
     metric_name: str
     metric_id: str
     is_calculated: bool
+
+
+@dataclass
+class PollingStats:
+    mean: float
+    median: float
+    min: float
+    max: float
+    std_dev: float
+    compliance: bool
 
 class Poller:
     def __init__(self):
         self.config = get_config()
         self.metrics = self._discover_time_metrics()
+        self.client = get_dynatrace_client()
 
     def _is_time_metric(self, metric_name: str) -> bool:
         """Check if the name implies it's a time related metric"""
@@ -30,6 +45,7 @@ class Poller:
                     # if it is, append to list
                     metrics.append(PollingMetric(
                         service_name = service.name,
+                        service_id = service.id,
                         metric_name = name,
                         metric_id = id,
                         is_calculated = False
@@ -43,6 +59,7 @@ class Poller:
                         # If it is, append to list
                         metrics.append(PollingMetric(
                             service_name = service.name,
+                            service_id = service.id,
                             metric_name = name,
                             metric_id = id,
                             is_calculated = True
@@ -50,6 +67,44 @@ class Poller:
         
         return metrics
     
+    def poll_metric_from_service(self, metric: PollingMetric):
+        client = get_dynatrace_client()
+        service_name = metric.service_name
+        service_id = metric.service_id
+        metric_id = metric.metric_id
+        resolution = self.config.polling.resolution
+        from_time = self.config.polling.from_time
+        to_time = self.config.polling.to_time
+        data_matrix = self.client.get_service_metrics(service_id, service_name, metric_id, resolution, from_time, to_time)
+        return self.average_time_ms(data_matrix)
+
+
+    def average_time_ms(self, metric_data: List[Tuple[int, Optional[float]]]) -> float:
+        """
+        Calculate average time in milliseconds from raw metric data.
+        
+        Args:
+            metric_data: List of tuples (timestamp, value_in_microseconds)
+            
+        Returns:
+            Average time in milliseconds (float)
+            
+        Raises:
+            ValueError: If no valid data points exist
+        """
+        valid_values = []
+        
+        for timestamp, value in metric_data:
+            # Skip None values and negative values (invalid data)
+            if value is not None and value >= 0:
+                # Convert microseconds to milliseconds
+                valid_values.append(value / 1000)
+        
+        if not valid_values:
+            raise ValueError("No valid data points to calculate average")
+        
+        return statistics.mean(valid_values)
+
     def get_polling_config(self) -> Dict:
         return { 
             "resolution": self.config.polling.resolution,

@@ -52,8 +52,8 @@ class Debugger:
         
         print("\n=== Metrics Being Polled ===")
         for metric in metrics:
-            metric_type = "Calculated" if metric.is_calculated else "Regular"
-            print(f"{metric.service_name}:")
+            metric_type = "Calculated" if metric.is_calculated else "Builtin"
+            print(f"{metric.service_name} ({metric.service_id}):")
             print(f"  - {metric.metric_name} ({metric_type})")
             print(f"    ID: {metric.metric_id}")
 

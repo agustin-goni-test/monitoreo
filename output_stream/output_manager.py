@@ -48,3 +48,7 @@ class OutputManager:
             else:
                 writer.write_default(service_name, data_matrix)
 
+    def metric_validation_output(self, average, threshold):
+        # Check if response is below threshold
+        pass
+

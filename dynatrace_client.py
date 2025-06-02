@@ -278,7 +278,7 @@ class DynatraceClient:
             'metricSelector': metric_name,
             'resolution': '1m',
             'entitySelector': f'entityId({service_id})',
-            'from': 'now-1d',
+            'from': 'now-30m',
             'to': 'now'
         }
 
