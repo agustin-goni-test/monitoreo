@@ -3,8 +3,14 @@ from debugger import Debugger
 from dynatrace_client import get_dynatrace_client
 from output_stream.output_manager import OutputManager
 from polling.poller import Poller
+from clients.login import get_login_client
+from clients.private_site import get_private_site_client
+from dotenv import load_dotenv
+import os
 
 def main():
+
+    load_dotenv()
 
     # Obtain configuration
     config = get_config()
@@ -20,7 +26,19 @@ def main():
 
         
     client = get_dynatrace_client()
+    login_client = get_login_client()
+    site_client = get_private_site_client()
+
+    token = os.getenv("PRIVATE_SITE_TOKEN")
+
+    site_client.set_token(token)
+    response = site_client.get_last_transaction("09743043-8")
+    print(response)
+
+
+
     output_manager = OutputManager()
+
 
     # for metric in poller.metrics:
     #     # service_name = metric.service_name
@@ -43,14 +61,14 @@ def main():
     # metric_name = 'calc:service.responsetime_trxmediospago_filterdetails'
     # metric_name = 'calc:service.requestcount_trxmediospago_filterdetails'
     # metric_name = 'calc:service.successfulrequests_trxmediospago_filtersales'
-    metric_name = 'calc:service.failurerate_trxmediospago_filtersales'
+    # metric_name = 'calc:service.failurerate_trxmediospago_filtersales'
 
 
     # Para servicio de Abonos
     # client.test_service_metrics(metric_name, "AbonosController", "SERVICE-123E236BA4855F4A", time_based=True)
 
     # Para servicio de transacciones
-    client.test_service_metrics(metric_name, "ComercioTransaccionesController", "SERVICE-FD9343224D905203", time_based=False)
+    # client.test_service_metrics(metric_name, "ComercioTransaccionesController", "SERVICE-FD9343224D905203", time_based=False)
 
     # for service in config.services:
     #     print(f"\nQuerying service: {service.name}")
