@@ -1,4 +1,5 @@
 from config_loader import get_config
+from typing import Dict, List
 
 class Debugger:
 
@@ -41,3 +42,19 @@ class Debugger:
         print(f"  Resolution: {config.polling.resolution}")
         print(f"  From Time: {config.polling.from_time}")
         print(f"  To Time: {config.polling.to_time}")
+
+    @staticmethod
+    def echo_polling_metrics(polling_config: Dict, metrics: List['PollingMetric']):
+        """Print polling configuration and metrics"""
+        print("\n=== Polling Configuration ===")
+        print(f"Resolution: {polling_config['resolution']}")
+        print(f"Time Range: {polling_config['from_time']} to {polling_config['to_time']}")
+        
+        print("\n=== Metrics Being Polled ===")
+        for metric in metrics:
+            metric_type = "Calculated" if metric.is_calculated else "Regular"
+            print(f"{metric.service_name}:")
+            print(f"  - {metric.metric_name} ({metric_type})")
+            print(f"    ID: {metric.metric_id}")
+
+

@@ -2,16 +2,22 @@ from config_loader import get_config
 from debugger import Debugger
 from dynatrace_client import get_dynatrace_client
 from output_stream.output_manager import OutputManager
+from polling.poller import Poller
 
 def main():
 
     # Obtain configuration
     config = get_config()
+    
+    # Create poller
+    poller = Poller()
 
     print(f"Debug mode: {config.debug}")
 
     if config.debug:
         Debugger.echo_configuration()
+        poller.echo_configuration()
+
         
     client = get_dynatrace_client()
     output_manager = OutputManager()
@@ -29,19 +35,19 @@ def main():
     # Para servicio de transacciones
     # client.test_service_metrics(metric_name, "AbonosController", "SERVICE-FD9343224D905203", time_based=False)
 
-    for service in config.services:
-        print(f"\nQuerying service: {service.name}")
+    # for service in config.services:
+    #     print(f"\nQuerying service: {service.name}")
         
-        data_matrix = client.read_all_service_metrics_default(service)
-        complete_matrix = add_time_threshold_columns(data_matrix, service)
-        output_manager.default_output(service.name, complete_matrix)
+    #     data_matrix = client.read_all_service_metrics_default(service)
+    #     complete_matrix = add_time_threshold_columns(data  _matrix, service)
+    #     output_manager.default_output(service.name, complete_matrix)
 
-        if service.has_calculated_metrics():
-            data_matrix2 = client.read_all_calculated_service_metrics_default(service)
-            complete_matrix2 = add_time_threshold_columns(data_matrix2, service)
-            output_manager.default_output(service.name, complete_matrix2)
-        else:
-            print(f"Service {service.name} does not have any calculated metrics.")
+    #     if service.has_calculated_metrics():
+    #         data_matrix2 = client.read_all_calculated_service_metrics_default(service)
+    #         complete_matrix2 = add_time_threshold_columns(data_matrix2, service)
+    #         output_manager.default_output(service.name, complete_matrix2)
+    #     else:
+    #         print(f"Service {service.name} does not have any calculated metrics.")
 
     # for database in config.databases:
     #     print(f"\nQuerying database: {database.name}")
