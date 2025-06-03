@@ -32,3 +32,36 @@ class CSVWriter(OutputWriter):
 
         print(f"\nWrote a total of {len(data_matrix) - 1} data points, with {len(data_matrix[0]) - 1} columns, to the CSV file '{filename}'")
 
+
+    def write_last_trx_poll(self, polling_data):
+        """Write transaction polling data to CSV with timestamped filename"""
+        output_dir = "output_files"
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Create filename with hour-minute timestamp
+        timestamp = polling_data.current_time.strftime("%Y%m%d_%H%M")
+        filename = os.path.join(output_dir, f"trx_poll_{timestamp}.csv")
+        
+        # Check if file exists to determine if we need headers
+        file_exists = os.path.exists(filename)
+        
+        with open(filename, mode='a', newline='') as csvfile:  # Append mode
+            writer = csv.writer(csvfile)
+            
+            # Write header if new file
+            if not file_exists:
+                writer.writerow([
+                    "polling_timestamp",
+                    "last_transaction_time", 
+                    "time_lag_minutes"
+                ])
+            
+            # Write data row
+            writer.writerow([
+                polling_data.current_time.isoformat(),
+                polling_data.last_transaction_time.isoformat(),
+                f"{polling_data.time_lag:.2f}"
+            ])
+        
+        print(f"Appended polling data to {filename}")  # Optional logging
+
