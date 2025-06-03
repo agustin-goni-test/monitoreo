@@ -2,6 +2,9 @@ from .output_writer import OutputWriter
 import os
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
+from polling.poller import TransactionPolling
+from datetime import datetime
+import openpyxl
 
 class ExcelWriter(OutputWriter):
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
@@ -75,3 +78,78 @@ class ExcelWriter(OutputWriter):
         wb.save(filename)
         
         print(f"\nWrote a total of {len(data_matrix) - 1} data points, with {len(header) - 1} columns, to the Excel file '{filename}' (sheet: '{sheet_name}')")
+
+
+    def write_last_trx_poll(self, polling_data: TransactionPolling):
+        """
+        Write transaction polling data to a daily Excel file.
+        """
+        output_dir = "output_files"
+        os.makedirs(output_dir, exist_ok=True)
+
+        date_str = datetime.now().strftime("%Y_%m_%d")
+        base_filename = f"trx_polling_{date_str}.xlsx"
+
+        # Check for an existing file ignoring any timestamped versions
+        existing_file = self._find_existing_file(output_dir, date_str)
+
+        if existing_file:
+            filename = os.path.join(output_dir, existing_file)
+            workbook = openpyxl.load_workbook(filename)
+            sheet = workbook.active
+        else:
+            filename = os.path.join(output_dir, base_filename)
+            workbook = Workbook()
+            sheet = workbook.active
+            # Write header row
+            sheet.append([
+                "Poll time",
+                "Last transaction",
+                "Lag (min)"
+            ])
+
+        # Write the data row
+        sheet.append([
+            polling_data.current_time.isoformat(),
+            polling_data.last_transaction_time.isoformat(),
+            f"{polling_data.time_lag:.2f}"
+        ])
+
+        workbook.save(filename)
+        print(f"Appended polling data to {filename}")
+
+
+    def finalize_last_trx_poll_file(self):
+        """
+        Rename the current day's polling file to include a timestamp when the process is interrupted.
+        """
+        output_dir = "output_files"
+        date_str = datetime.now().strftime("%Y_%m_%d")
+
+        # Find the file ignoring timestamp suffix
+        existing_file = self._find_existing_file(output_dir, date_str)
+        if existing_file:
+            old_path = os.path.join(output_dir, existing_file)
+            base_name, ext = os.path.splitext(existing_file)
+
+            # Remove any existing timestamp suffix
+            if " - " in base_name:
+                base_name = base_name.split(" - ")[0]
+
+            timestamp_str = datetime.now().strftime("%H_%M_%S")
+            new_name = f"{base_name} - {timestamp_str}{ext}"
+            new_path = os.path.join(output_dir, new_name)
+
+            os.rename(old_path, new_path)
+            print(f"Renamed file to: {new_name}")
+
+    
+    # Helper method to handle file names
+    def _find_existing_file(self, directory, date_str):
+        """
+        Helper to find the file for today's date ignoring any timestamp suffix.
+        """
+        for filename in os.listdir(directory):
+            if filename.startswith(f"trx_polling_{date_str}") and filename.endswith(".xlsx"):
+                return filename
+        return None
