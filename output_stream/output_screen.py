@@ -27,4 +27,7 @@ class ScreenWriter(OutputWriter):
         polling_time = polling_data.current_time
         lag = polling_data.time_lag
         print(f"Polling time: {polling_time} -- Last recorded transaction: {last_trx} -- Time difference {lag:.2f} minutes")
+
+    def finalize_last_trx_poll_file(self):
+        print("Output to screen has ended.")
         

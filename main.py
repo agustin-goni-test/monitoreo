@@ -134,6 +134,8 @@ def start_last_trx_polling():
         print("\nInterrupted by user.")
     except Exception as e:
         print(f"Polling error with message: {str(e)}")
+    finally:
+        output_manager.finalize_last_trx_poll_files()
 
 
 def add_time_threshold_columns(matrix, service):

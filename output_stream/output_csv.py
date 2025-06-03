@@ -1,6 +1,8 @@
 from .output_writer import OutputWriter
 import csv
 import os
+from polling.poller import TransactionPolling
+from datetime import datetime
 
 class CSVWriter(OutputWriter):
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
@@ -33,35 +35,49 @@ class CSVWriter(OutputWriter):
         print(f"\nWrote a total of {len(data_matrix) - 1} data points, with {len(data_matrix[0]) - 1} columns, to the CSV file '{filename}'")
 
 
-    def write_last_trx_poll(self, polling_data):
-        """Write transaction polling data to CSV with timestamped filename"""
+    def write_last_trx_poll(self, polling_data: TransactionPolling):
+        """
+        Write transaction polling data to a daily CSV file.
+        """
         output_dir = "output_files"
         os.makedirs(output_dir, exist_ok=True)
-        
-        # Create filename with hour-minute timestamp
-        timestamp = polling_data.current_time.strftime("%Y%m%d_%H%M")
-        filename = os.path.join(output_dir, f"trx_poll_{timestamp}.csv")
-        
-        # Check if file exists to determine if we need headers
+
+        date_str = datetime.now().strftime("%Y_%m_%d")
+        filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
+
         file_exists = os.path.exists(filename)
-        
-        with open(filename, mode='a', newline='') as csvfile:  # Append mode
+        with open(filename, mode='a', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            
-            # Write header if new file
             if not file_exists:
                 writer.writerow([
-                    "polling_timestamp",
-                    "last_transaction_time", 
-                    "time_lag_minutes"
+                    "Poll time",
+                    "Last transaction",
+                    "Lag (min)"
                 ])
-            
-            # Write data row
             writer.writerow([
                 polling_data.current_time.isoformat(),
                 polling_data.last_transaction_time.isoformat(),
                 f"{polling_data.time_lag:.2f}"
             ])
-        
-        print(f"Appended polling data to {filename}")  # Optional logging
+        print(f"Appended polling data to {filename}")
+
+
+    def finalize_last_trx_poll_file(self):
+        """
+        Rename the current day's polling file to include a timestamp when the process is interrupted.
+        """
+        output_dir = "output_files"
+        date_str = datetime.now().strftime("%Y_%m_%d")
+        filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
+
+        if os.path.exists(filename):
+            base, ext = os.path.splitext(filename)
+            # Remove any existing timestamp suffix
+            if " - " in base:
+                base = base.split(" - ")[0]
+            timestamp_str = datetime.now().strftime("%H-%M-%S")
+            new_filename = f"{base} - {timestamp_str}{ext}"
+            os.rename(filename, new_filename)
+            print(f"Renamed file to: {new_filename}")
+
 

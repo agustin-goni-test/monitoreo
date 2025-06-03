@@ -9,3 +9,7 @@ class OutputWriter(ABC):
     @abstractmethod
     def write_last_trx_poll(self, polling_data: TransactionPolling):
         pass
+
+    @abstractmethod
+    def finalize_last_trx_poll_file(self):
+        pass
