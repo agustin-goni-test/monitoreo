@@ -64,6 +64,10 @@ class OutputManager:
         for writer in self.writers:
             writer.finalize_last_trx_poll_file()
 
+    def finalize_polling_file(self, service_name):
+        for writer in self.writers:
+            writer.finalize_polling_file(service_name)
+
     def metric_validation_output(self, average, threshold):
         # Check if response is below threshold
         pass

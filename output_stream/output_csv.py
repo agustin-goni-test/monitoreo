@@ -4,6 +4,7 @@ import os
 from polling.poller import TransactionPolling, PollingStats
 from datetime import datetime
 from typing import List, Tuple
+import glob
 
 class CSVWriter(OutputWriter):
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
@@ -86,7 +87,11 @@ class CSVWriter(OutputWriter):
         Write polling stats to a CSV file per service.
         Appends to an existing file if it exists (even with timestamp).
         """
-        base_filename = f"Poll_{service_name}"
+        output_dir = "output_files"
+        os.makedirs(output_dir, exist_ok=True)
+
+        boutput_dir = "output_files"
+        base_filename = os.path.join(output_dir, f"Poll_{service_name}")
         filename = self._find_existing_file(base_filename)
 
         file_exists = os.path.exists(filename)
@@ -125,33 +130,39 @@ class CSVWriter(OutputWriter):
         print(f"Appended polling stats to {filename}")
 
 
-        def finalize_polling_file(self, service_name: str):
-            """
-            Rename the polling file to include a timestamp (to the second).
-            """
-            base_filename = f"Poll_{service_name}"
-            filename = self._find_existing_file(base_filename)
+    def finalize_polling_file(self, service_name: str):
+        """
+        Rename the polling file to include a timestamp (to the second),
+        ignoring files that already have a timestamp.
+        """
+        output_dir = "output_files"
+        base_filename = os.path.join(output_dir, f"Poll_{service_name}")
+        filename = self._find_existing_file(base_filename)
 
-            if os.path.exists(filename):
+        if os.path.exists(filename):
+            base_name = os.path.splitext(os.path.basename(filename))[0]
+            if " - " not in base_name:
                 timestamp_str = datetime.now().strftime("%H-%M-%S")
-                new_filename = f"{base_filename} - {timestamp_str}.csv"
-                new_filepath = os.path.join(self.output_dir, new_filename)
+                ext = os.path.splitext(filename)[1]
+                new_filename = f"{base_name} - {timestamp_str}{ext}"
+                new_filepath = os.path.join(output_dir, new_filename)
                 os.rename(filename, new_filepath)
                 print(f"Renamed file to: {new_filepath}")
 
 
-        def _find_existing_file(self, base_filename: str) -> str:
-            """
-            Find an existing file matching the base filename (with or without timestamp).
-            Returns the first matching file or the default base filename.
-            """
-            pattern = os.path.join(self.output_dir, f"{base_filename}*.csv")
-            matches = glob.glob(pattern)
-            if matches:
-                # Return the first match (could refine this to pick the latest)
-                return matches[0]
-            else:
-                return os.path.join(self.output_dir, f"{base_filename}.csv")
+    def _find_existing_file(self, base_filename: str) -> str:
+        """
+        Find an existing file matching the base filename (with or without timestamp)
+        inside the given output_dir.
+        Returns the first matching file or the default base filename path.
+        """
+        # We expect base_filename to be like 'output_files/Poll_AbonosController'
+        pattern = f"{base_filename}*.csv"  # e.g. 'output_files/Poll_AbonosController*.csv'
+        matches = glob.glob(pattern)
+        if matches:
+            return matches[0]
+        else:
+            return f"{base_filename}.csv"
 
 
 

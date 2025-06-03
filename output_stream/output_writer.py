@@ -18,3 +18,7 @@ class OutputWriter(ABC):
     @abstractmethod
     def write_polling_stats(self, service_name, stats_list: List[Tuple[str, PollingStats]]):
         pass
+
+    @abstractmethod
+    def finalize_polling_file(self, service_name):
+        pass

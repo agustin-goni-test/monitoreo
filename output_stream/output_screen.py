@@ -34,7 +34,7 @@ class ScreenWriter(OutputWriter):
         print("Output to screen has ended.")
 
     def write_polling_stats(self, service_name, stats_list: List[Tuple[str, PollingStats]]):
-        print(f"\n Inside the screen writer, processing service {service_name} \n")
+        print(f"\nInside the screen writer, processing service {service_name}")
         for metric_name, stats in stats_list:
             print(f"Metric name: {metric_name}")
             print(f"Mean: {stats.mean:.2f} " 
@@ -44,6 +44,9 @@ class ScreenWriter(OutputWriter):
                   f"- StdDev: {stats.std_dev:.2f} " 
                   f" - Compliance: {stats.compliance}"
                   )
+            
+    def finalize_polling_file(self, service_name):
+        print(f"Service polling for service {service_name} has stopped...")
 
 
         
