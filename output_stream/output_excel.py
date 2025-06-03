@@ -101,19 +101,54 @@ class ExcelWriter(OutputWriter):
             filename = os.path.join(output_dir, base_filename)
             workbook = Workbook()
             sheet = workbook.active
-            # Write header row
+
+             # Write header row
             sheet.append([
                 "Poll time",
+                "Year",
+                "Month",
+                "Day",
+                "Weekday",
+                "Time",
                 "Last transaction",
-                "Lag (min)"
+                "lag (min)",
+                "Lag minutes",
+                "Lag seconds"
             ])
+            
+        # Extract values
+        poll_time = polling_data.current_time
+        last_trx_time = polling_data.last_transaction_time
+        lag_str = f"{polling_data.time_lag:.2f}"
+        lag = float(lag_str)
+
+        # Decomposed poll time
+        year = poll_time.year
+        month = poll_time.month
+        day = poll_time.day
+        weekday = poll_time.strftime("%A")
+        time_str = poll_time.strftime("%H:%M:%S")
+
+        total_seconds = lag * 60
+        lag_minutes = int(total_seconds // 60)
+        lag_seconds = total_seconds % 60
+
+        # Create new row
+        row = [
+            poll_time.isoformat(),
+            year,
+            month,
+            day,
+            weekday,
+            time_str,
+            last_trx_time.isoformat(),
+            lag,
+            lag_minutes,
+            lag_seconds
+        ]   
 
         # Write the data row
-        sheet.append([
-            polling_data.current_time.isoformat(),
-            polling_data.last_transaction_time.isoformat(),
-            f"{polling_data.time_lag:.2f}"
-        ])
+        sheet.append(row)
 
         workbook.save(filename)
         print(f"Appended polling data to {filename}")

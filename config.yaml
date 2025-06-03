@@ -2,8 +2,8 @@ debug: false
 
 output_format:
   Screen: true
-  CSV: true
-  Excel: true
+  CSV: false
+  Excel: false
   All: false
   Default: Screen
 

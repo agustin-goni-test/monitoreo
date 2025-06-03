@@ -2,13 +2,15 @@ from config_loader import get_config
 from debugger import Debugger
 from dynatrace_client import get_dynatrace_client
 from output_stream.output_manager import OutputManager
-from polling.poller import Poller, TransactionPolling
+from polling.poller import Poller, TransactionPolling, PollingStats
 from clients.login import get_login_client
 from clients.private_site import get_private_site_client
 from dotenv import load_dotenv
 import os
 from datetime import datetime
 import time
+from collections import defaultdict
+from typing import List, Tuple
 
 _output_manager = OutputManager()
 _poller = Poller()
@@ -46,7 +48,15 @@ def main():
     # response = site_client.get_last_transaction("09743043-8")
     # print(response)
 
-    start_last_trx_polling()
+    
+    
+    
+    ### LAST TRANSACTION POLLING LOGIC
+    # start_last_trx_polling()
+
+
+
+
 
     # transaction_poll = poller.poll_last_transaction()
     # output_manager = get_output_manager()
@@ -54,6 +64,36 @@ def main():
     # output_manager.last_trx_poll_output(transaction_poll)
 
 
+
+    output_manager = get_output_manager()
+    metrics_by_service = defaultdict(list)
+
+    for metric in poller.metrics:
+        metrics_by_service[metric.service_name].append(metric)
+
+    for service_name, metrics in metrics_by_service.items():
+        print(f"Polling metrics from service: {service_name}...")
+
+        stats_pairs: List[Tuple[str, PollingStats]] = []
+
+        for metric in metrics:
+            stats = poller.poll_metric_from_service(metric)
+            stats_pairs.append((metric.metric_name, stats))
+            average = stats.mean
+            print(f"Service: {metric.service_name} - Metric name: {metric.metric_name} - Average time: {average}")
+        
+        print(f"Finished polling service {service_name}")
+        output_manager.service_poll_output(service_name, stats_pairs)
+
+    # for metric in poller.metrics:
+    #     stats = poller.poll_metric_from_service(metric)
+    #     average = stats.mean
+    #     print(f"Service: {metric.service_name} - Metric name: {metric.metric_name} - Average time: {average}")
+
+    
+    
+    
+    
     # for metric in poller.metrics:
     #     # service_name = metric.service_name
     #     # service_id = metric.service_id
@@ -137,6 +177,36 @@ def start_last_trx_polling():
     finally:
         output_manager.finalize_last_trx_poll_files()
 
+
+def start_service_poll():
+    poller = get_poller()
+    output_manager = get_output_manager()
+    
+    metrics_by_service = defaultdict(list)
+
+    for metric in poller.metrics:
+        metrics_by_service[metric.service_name].append(metric)
+
+    try:
+        while True:
+            for service_name, metrics in metrics_by_service.items():
+                print(f"Polling metrics from service: {service_name}...")
+
+                stats_pairs: List[Tuple[str, PollingStats]] = []
+
+                for metric in metrics:
+                    stats = poller.poll_metric_from_service(metric)
+                    stats_pairs.append((metric.metric_name, stats))
+                    average = stats.mean
+                    print(f"Service: {metric.service_name} - Metric name: {metric.metric_name} - Average time: {average}")
+                
+                print(f"Finished polling service {service_name}")
+                output_manager.service_poll_output(service_name, stats_pairs)
+
+    except KeyboardInterrupt:
+        print("\nInterrupted by user.")
+    except Exception as e:
+        print(f"Polling error with message: {str(e)}")
 
 def add_time_threshold_columns(matrix, service):
     """

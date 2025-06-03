@@ -82,7 +82,7 @@ class Poller:
         
         return metrics
     
-    def poll_metric_from_service(self, metric: PollingMetric):
+    def poll_metric_from_service(self, metric: PollingMetric) -> PollingStats:
         client = get_dynatrace_client()
         service_name = metric.service_name
         service_id = metric.service_id
@@ -91,7 +91,12 @@ class Poller:
         from_time = self.config.polling.from_time
         to_time = self.config.polling.to_time
         data_matrix = self.client.get_service_metrics(service_id, service_name, metric_id, resolution, from_time, to_time)
-        return self.average_time_ms(data_matrix)
+        
+        # stats = PollingStats()
+        # average = self.average_time_ms(data_matrix) / 1000
+        return self.calculate_polling_stats(data_matrix)
+
+      
 
 
     def average_time_ms(self, metric_data: List[Tuple[int, Optional[float]]]) -> float:
@@ -119,6 +124,46 @@ class Poller:
             raise ValueError("No valid data points to calculate average")
         
         return statistics.mean(valid_values)
+    
+
+    def calculate_polling_stats(self, metric_data: List[Tuple[int, Optional[float]]]) -> 'PollingStats':
+        """
+        Calculate polling statistics from raw metric data.
+
+        Args:
+            metric_data: List of tuples (timestamp, value_in_microseconds)
+
+        Returns:
+            PollingStats: Aggregated statistics
+        """
+        valid_values = []
+
+        for timestamp, value in metric_data:
+            if value is not None and value >= 0:
+                valid_values.append(value / 1000)  # microseconds to milliseconds
+
+        if not valid_values:
+            raise ValueError("No valid data points to calculate statistics")
+
+        mean_value = statistics.mean(valid_values)
+        median_value = statistics.median(valid_values)
+        min_value = min(valid_values)
+        max_value = max(valid_values)
+        std_dev = statistics.stdev(valid_values) if len(valid_values) > 1 else 0.0
+
+        # To be taken from configuration
+        below_threshold_flag = mean_value < 3000
+
+        return PollingStats(
+            mean=mean_value / 1000,          # convert to seconds, like you did before
+            median=median_value / 1000,      # same conversion
+            min=min_value / 1000,
+            max=max_value / 1000,
+            std_dev=std_dev,
+            compliance=below_threshold_flag
+        )
+
+
 
     def get_polling_config(self) -> Dict:
         return { 

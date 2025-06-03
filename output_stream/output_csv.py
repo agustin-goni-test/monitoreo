@@ -1,8 +1,9 @@
 from .output_writer import OutputWriter
 import csv
 import os
-from polling.poller import TransactionPolling
+from polling.poller import TransactionPolling, PollingStats
 from datetime import datetime
+from typing import List, Tuple
 
 class CSVWriter(OutputWriter):
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
@@ -79,5 +80,78 @@ class CSVWriter(OutputWriter):
             new_filename = f"{base} - {timestamp_str}{ext}"
             os.rename(filename, new_filename)
             print(f"Renamed file to: {new_filename}")
+
+    def write_polling_stats(self, service_name: str, stats_list: List[Tuple[str, PollingStats]]):
+        """
+        Write polling stats to a CSV file per service.
+        Appends to an existing file if it exists (even with timestamp).
+        """
+        base_filename = f"Poll_{service_name}"
+        filename = self._find_existing_file(base_filename)
+
+        file_exists = os.path.exists(filename)
+        with open(filename, mode='a', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+
+            if not file_exists:
+                # Write header row
+                header = [
+                    "Poll time",
+                    "Metric Name",
+                    "Mean (ms)",
+                    "Median (ms)",
+                    "Min (ms)",
+                    "Max (ms)",
+                    "StdDev (ms)",
+                    "Compliance"
+                ]
+                writer.writerow(header)
+
+            # Write each metric stats
+            poll_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for metric_name, stats in stats_list:
+                row = [
+                    poll_time,
+                    metric_name,
+                    f"{stats.mean:.2f}",
+                    f"{stats.median:.2f}",
+                    f"{stats.min:.2f}",
+                    f"{stats.max:.2f}",
+                    f"{stats.std_dev:.2f}",
+                    str(stats.compliance)
+                ]
+                writer.writerow(row)
+
+        print(f"Appended polling stats to {filename}")
+
+
+        def finalize_polling_file(self, service_name: str):
+            """
+            Rename the polling file to include a timestamp (to the second).
+            """
+            base_filename = f"Poll_{service_name}"
+            filename = self._find_existing_file(base_filename)
+
+            if os.path.exists(filename):
+                timestamp_str = datetime.now().strftime("%H-%M-%S")
+                new_filename = f"{base_filename} - {timestamp_str}.csv"
+                new_filepath = os.path.join(self.output_dir, new_filename)
+                os.rename(filename, new_filepath)
+                print(f"Renamed file to: {new_filepath}")
+
+
+        def _find_existing_file(self, base_filename: str) -> str:
+            """
+            Find an existing file matching the base filename (with or without timestamp).
+            Returns the first matching file or the default base filename.
+            """
+            pattern = os.path.join(self.output_dir, f"{base_filename}*.csv")
+            matches = glob.glob(pattern)
+            if matches:
+                # Return the first match (could refine this to pick the latest)
+                return matches[0]
+            else:
+                return os.path.join(self.output_dir, f"{base_filename}.csv")
+
 
 

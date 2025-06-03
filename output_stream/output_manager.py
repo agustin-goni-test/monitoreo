@@ -3,7 +3,8 @@ from .output_screen import ScreenWriter
 from .output_excel import ExcelWriter
 from .output_csv import CSVWriter  # Add any other writers as needed
 from config_loader import get_config
-from polling.poller import TransactionPolling
+from polling.poller import TransactionPolling, PollingStats
+from typing import List, Tuple
 
 class OutputManager:
     def __init__(self):
@@ -53,6 +54,10 @@ class OutputManager:
         """Generic implementation for all writers"""
         for writer in self.writers:
             writer.write_last_trx_poll(polling_data)
+        
+    def service_poll_output(self, service_name, stats_pairs: List[Tuple[str, PollingStats]]):
+        for writer in self.writers:
+            writer.write_polling_stats(service_name, stats_pairs)
 
     
     def finalize_last_trx_poll_files(self):
