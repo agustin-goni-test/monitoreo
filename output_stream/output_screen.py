@@ -19,4 +19,12 @@ class ScreenWriter(OutputWriter):
             print(", ".join(output_row))
         
         print(f"\nWrote a total of {len(data_matrix) - 1}  data points, with {len(data_matrix[0]) - 1} columns, to the screen")
+
+    
+    def write_last_trx_poll(self, polling_data):
+        """Output the data in a single screen line"""
+        last_trx = polling_data.last_transaction_time
+        polling_time = polling_data.current_time
+        lag = polling_data.time_lag
+        print(f"Polling time: {polling_time} -- Last recorded transaction: {last_trx} -- Time difference {lag:.2f} minutes")
         

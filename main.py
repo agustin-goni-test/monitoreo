@@ -2,11 +2,22 @@ from config_loader import get_config
 from debugger import Debugger
 from dynatrace_client import get_dynatrace_client
 from output_stream.output_manager import OutputManager
-from polling.poller import Poller
+from polling.poller import Poller, TransactionPolling
 from clients.login import get_login_client
 from clients.private_site import get_private_site_client
 from dotenv import load_dotenv
 import os
+from datetime import datetime
+import time
+
+_output_manager = OutputManager()
+_poller = Poller()
+
+def get_output_manager():
+    return _output_manager
+
+def get_poller():
+    return _poller
 
 def main():
 
@@ -16,7 +27,7 @@ def main():
     config = get_config()
     
     # Create poller
-    poller = Poller()
+    poller = get_poller()
 
     print(f"Debug mode: {config.debug}")
 
@@ -31,13 +42,16 @@ def main():
 
     token = os.getenv("PRIVATE_SITE_TOKEN")
 
-    site_client.set_token(token)
-    response = site_client.get_last_transaction("09743043-8")
-    print(response)
+    # site_client.set_token(token)
+    # response = site_client.get_last_transaction("09743043-8")
+    # print(response)
 
+    start_last_trx_polling()
 
+    # transaction_poll = poller.poll_last_transaction()
+    # output_manager = get_output_manager()
 
-    output_manager = OutputManager()
+    # output_manager.last_trx_poll_output(transaction_poll)
 
 
     # for metric in poller.metrics:
@@ -89,6 +103,37 @@ def main():
 
     #     data_matrix = client.read_all_database_metrics_default(database)
     #     output_manager.default_output(database.name, data_matrix)
+
+
+
+def start_last_trx_polling():
+    poller = get_poller()
+    output_manager = get_output_manager()
+
+    print("Starting last transaction poll... press any key to interrupt")
+
+    try:
+        while True:
+            # Get current time to maintain regular interval
+            last_poll = datetime.now()
+
+            # Poll the last transaction
+            transaction_poll = poller.poll_last_transaction()
+
+            # Output results
+            output_manager.last_trx_poll_output(transaction_poll)
+
+            # Calculate remaining time before next poll
+            processing_time = (datetime.now() - last_poll).total_seconds()
+            remaining_time = max(0, 30 - processing_time)
+
+            # Wait before next poll
+            time.sleep(remaining_time)           
+
+    except KeyboardInterrupt:
+        print("\nInterrupted by user.")
+    except Exception as e:
+        print(f"Polling error with message: {str(e)}")
 
 
 def add_time_threshold_columns(matrix, service):

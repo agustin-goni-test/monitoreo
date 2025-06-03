@@ -23,7 +23,7 @@ class PrivateSiteClient:
             'Authorization': f'Bearer {token}'
         })
 
-    def get_last_transaction(self, commerce_rut: str) -> dict:
+    def get_last_transaction(self) -> dict:
         """
         Calls the private endpoint to get last transaction timestamp
         Requires token to be set first via set_token()
@@ -41,9 +41,10 @@ class PrivateSiteClient:
             raise RuntimeError("Authentication token not set - call set_token() first")
         
         last_trx = os.getenv("LAST_TRX_ENDPOINT")
+        user = os.getenv("LOGIN_USER")
         endpoint = f"{self.base_url}{last_trx}"  # Adjust endpoint as needed
         payload = {
-            "commerce_rut": commerce_rut,
+            "commerce_rut": user,
             "rol_user": "rol_super_usuario",
             "atc_filter": "TODOS"
         }

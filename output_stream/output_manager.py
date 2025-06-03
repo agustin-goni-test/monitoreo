@@ -3,6 +3,7 @@ from .output_screen import ScreenWriter
 from .output_excel import ExcelWriter
 from .output_csv import CSVWriter  # Add any other writers as needed
 from config_loader import get_config
+from polling.poller import TransactionPolling
 
 class OutputManager:
     def __init__(self):
@@ -47,6 +48,11 @@ class OutputManager:
                 writer.write_default(service_name, data_matrix, sheet_name=sheet_name)
             else:
                 writer.write_default(service_name, data_matrix)
+            
+    def last_trx_poll_output(self, polling_data: TransactionPolling):
+        """Generic implementation for all writers"""
+        for writer in self.writers:
+            writer.write_last_trx_poll(polling_data)
 
     def metric_validation_output(self, average, threshold):
         # Check if response is below threshold

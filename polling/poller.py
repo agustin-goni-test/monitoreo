@@ -2,9 +2,15 @@ from typing import List, Dict
 from dataclasses import dataclass
 from config_loader import get_config
 from dynatrace_client import get_dynatrace_client
+from clients.private_site import get_private_site_client
 from debugger import Debugger
 from typing import List, Tuple, Optional
 import statistics
+from datetime import datetime
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 @dataclass
 class PollingMetric:
@@ -23,6 +29,13 @@ class PollingStats:
     max: float
     std_dev: float
     compliance: bool
+
+@dataclass
+class TransactionPolling:
+    current_time: datetime
+    last_transaction_time: datetime
+    time_lag: float
+
 
 class Poller:
     def __init__(self):
@@ -111,6 +124,37 @@ class Poller:
             "from_time": self.config.polling.from_time,
             "to_time": self.config.polling.to_time
         }
+    
+
+    def poll_last_transaction(self) -> TransactionPolling:
+        
+        # Get client and token
+        site_client = get_private_site_client()
+        token = os.getenv("PRIVATE_SITE_TOKEN")
+        site_client.set_token(token)
+        
+        # Find current time
+        current_time = datetime.now()
+
+        # Call API
+        response = site_client.get_last_transaction()
+
+        # Parse the transaction time
+        trx_time_str = response['data']['trx_last']
+        last_transaction_time = datetime.strptime(
+            trx_time_str, 
+            '%Y-%m-%d %H:%M:%S.%f'
+        )
+
+        # Calculate the time difference
+        time_lag = (current_time - last_transaction_time).total_seconds() / 60
+
+        return TransactionPolling(
+            current_time=current_time,
+            last_transaction_time=last_transaction_time,
+            time_lag=time_lag
+        )
+
     
     def echo_configuration(self):
         """Print the configuration in the debugger"""
