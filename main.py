@@ -28,8 +28,11 @@ def main():
     # Obtain configuration
     config = get_config()
     
-    # Create poller
+    # Obtain poller
     poller = get_poller()
+
+    # Obtain output manager
+    output_manager = get_output_manager()
 
     print(f"Debug mode: {config.debug}")
 
@@ -54,7 +57,8 @@ def main():
     ### LAST TRANSACTION POLLING LOGIC
     # start_last_trx_polling()
 
-    start_service_polling()
+    ### SERVICE METRICS POLLING
+    # start_service_polling()
 
 
 
@@ -149,6 +153,76 @@ def main():
     #     data_matrix = client.read_all_database_metrics_default(database)
     #     output_manager.default_output(database.name, data_matrix)
 
+
+    # get_historical_service_metrics()
+    # get_calculated_service_metrics()
+    get_all_metrics_default_period()
+
+
+    # for service in config.services:
+    #     print(f"Querying service {service.name}")
+
+    #     data_matrix = client.read_all_database_metrics_default(service)
+    #     complete_matrix = add_time_threshold_columns(data_matrix, service)
+    #     output_manager.default_output(service.name, complete_matrix)
+
+    #     if service.has_calculated_metrics():
+    #         calc_matrix = client.read_all_calculated_service_metrics_default(service)
+    #         calc_complete = add_time_threshold_columns(calc_matrix, service)
+    #         output_manager.default_output(service.name, calc_complete)
+    #     else:
+    #         print(f"Service {service.name} has no calculated metrics.")
+        
+
+def get_historical_service_metrics():
+
+    client = get_dynatrace_client()
+    output_manager = get_output_manager()
+    config = get_config()
+
+    for service in config.services:
+        print(f"Querying service {service.name}")
+
+        data_matrix = client.read_all_database_metrics_default(service)
+        complete_matrix = add_time_threshold_columns(data_matrix, service)
+        output_manager.default_output(service.name, complete_matrix)
+
+def get_calculated_service_metrics():
+    
+    client = get_dynatrace_client()
+    output_manager = get_output_manager()
+    config = get_config()
+
+    for service in config.services:
+        print(f"Querying calculated metrics for service {service.name}")
+
+        if service.has_calculated_metrics():
+            calc_matrix = client.read_all_calculated_service_metrics_default(service)
+            calc_complete = add_time_threshold_columns(calc_matrix, service)
+            output_manager.default_output(service.name, calc_complete)
+        else:
+            print(f"Service {service.name} has no calculated metrics.")
+
+
+def get_all_metrics_default_period():
+
+    client = get_dynatrace_client()
+    output_manager = get_output_manager()
+    config = get_config()
+
+    for service in config.services:
+        print(f"Querying service {service.name}")
+
+        data_matrix = client.read_all_database_metrics_default(service)
+        complete_matrix = add_time_threshold_columns(data_matrix, service)
+        output_manager.default_output(service.name, complete_matrix)
+
+        if service.has_calculated_metrics():
+            calc_matrix = client.read_all_calculated_service_metrics_default(service)
+            calc_complete = add_time_threshold_columns(calc_matrix, service)
+            output_manager.default_output(service.name, calc_complete)
+        else:
+            print(f"Service {service.name} has no calculated metrics.")
 
 
 def start_last_trx_polling():
