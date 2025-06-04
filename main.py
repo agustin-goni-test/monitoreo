@@ -55,7 +55,16 @@ def main():
     
     
     ### LAST TRANSACTION POLLING LOGIC
-    start_last_trx_polling()
+    error_count = 0
+    retry_polling = True
+    while True:
+        retry_polling = start_last_trx_polling()
+        if not retry_polling:
+            break
+        print("Polling has restarted after error...")
+        error_count += 1
+    
+    print(f"Number of errors and restarts: {error_count}")
 
     ### SERVICE METRICS POLLING
     # start_service_polling()
@@ -301,10 +310,13 @@ def start_last_trx_polling():
 
     except KeyboardInterrupt:
         print("\nInterrupted by user.")
+        return False
     except Exception as e:
         print(f"Polling error with message: {str(e)}")
+        return True
     finally:
         output_manager.finalize_last_trx_poll_files()
+        
 
 
 def start_service_polling():
