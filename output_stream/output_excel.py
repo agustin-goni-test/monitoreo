@@ -182,58 +182,68 @@ class ExcelWriter(OutputWriter):
 
 
     def write_polling_stats(self, service_name, stats_list):
-        
+        """
+        Write polling stats to an Excel file per service.
+        Each metric is written to a separate sheet named after the metric.
+        """
         output_dir = "output_files"
         os.makedirs(output_dir, exist_ok=True)
 
-        date_str = datetime.now().strftime("%Y_%m_%d")
         base_filename = f"Poll_{service_name}"
         pattern = os.path.join(output_dir, f"{base_filename}*.xlsx")
         matches = glob.glob(pattern)
 
-        filename = None
         if matches:
-            # Use the first match (could refine to pick the latest if needed)
             filename = matches[0]
+            workbook = openpyxl.load_workbook(filename)
         else:
             filename = os.path.join(output_dir, f"{base_filename}.xlsx")
-
-        # Check if the file exists; load it or create a new one
-        if os.path.exists(filename):
-            workbook = openpyxl.load_workbook(filename)
-            sheet = workbook.active
-        else:
             workbook = Workbook()
-            sheet = workbook.active
+            # Remove the default sheet if it’s empty
+            default_sheet = workbook.active
+            if default_sheet and default_sheet.max_row == 1 and default_sheet.max_column == 1 and default_sheet.cell(1, 1).value is None:
+                workbook.remove(default_sheet)
 
-            # Write header row
-            sheet.append([
-                "Poll time",
-                "Metric Name",
-                "Mean (ms)",
-                "Median (ms)",
-                "Min (ms)",
-                "Max (ms)",
-                "StdDev (ms)",
-                "Compliance"
-            ])
+        # Define header row (without Metric Name, as each sheet is specific)
+        header = [
+            "Poll time",
+            "Mean (ms)",
+            "Median (ms)",
+            "Min (ms)",
+            "Max (ms)",
+            "StdDev (ms)",
+            "Compliance"
+        ]
 
-        # Write values
+        # Define max sheet name length (Excel allows 31 chars max)
+        MAX_SHEET_NAME_LENGTH = 31
+
+        def truncate_sheet_name(name):
+            """Truncate the sheet name consistently."""
+            return name[:MAX_SHEET_NAME_LENGTH]
+
         poll_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         for metric_name, stats in stats_list:
+            sheet_name = truncate_sheet_name(metric_name)
+
+            if sheet_name in workbook.sheetnames:
+                sheet = workbook[sheet_name]
+            else:
+                sheet = workbook.create_sheet(title=sheet_name)
+                sheet.append(header)
+
             row = [
-                    poll_time,
-                    metric_name,
-                    f"{stats.mean:.2f}",
-                    f"{stats.median:.2f}",
-                    f"{stats.min:.2f}",
-                    f"{stats.max:.2f}",
-                    f"{stats.std_dev:.2f}",
-                    str(stats.compliance)
-                ]
-            
+                poll_time,
+                f"{stats.mean:.2f}",
+                f"{stats.median:.2f}",
+                f"{stats.min:.2f}",
+                f"{stats.max:.2f}",
+                f"{stats.std_dev:.2f}",
+                str(stats.compliance)
+            ]
             sheet.append(row)
-        
+
         workbook.save(filename)
         print(f"Appended polling data to {filename}")
 
