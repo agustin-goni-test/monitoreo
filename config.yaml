@@ -9,9 +9,9 @@ output_format:
 
 timeframes:
   services:
-    from_time: "now-30m"
+    from_time: "now-365d"
     to_time: "now"
-    resolution: "1m"
+    resolution: "1h"
   databases:
     from_time: "now-7d"
     to_time: "now"
@@ -41,9 +41,14 @@ services:
     threshold_ms: 3000
     metrics:
       response_time: "builtin:service.response.time"
+      client_time: "builtin:service.response.client"
       request_count: "builtin:service.requestCount.total"
       success_count: "builtin:service.errors.server.successCount"
       failure_count: "builtin:service.errors.server.count"
+      failure_rate: "builtin:service.errors.total.rate"
+      server_failure_rate: "builtin:service.errors.server.rate"
+      server_success_rate: "builtin:service.successes.server.rate"
+      
 
 databases:
   - name: "mc_tlog_historia"

@@ -79,7 +79,7 @@ class ExcelWriter(OutputWriter):
         
         wb.save(filename)
         
-        print(f"\nWrote a total of {len(data_matrix) - 1} data points, with {len(header) - 1} columns, to the Excel file '{filename}' (sheet: '{sheet_name}')")
+        print(f"\nWrote a total of {len(data_matrix) - 2} data points, with {len(header) - 1} columns, to the Excel file '{filename}' (sheet: '{sheet_name}')")
 
 
     def write_last_trx_poll(self, polling_data: TransactionPolling):

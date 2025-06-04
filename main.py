@@ -55,7 +55,7 @@ def main():
     
     
     ### LAST TRANSACTION POLLING LOGIC
-    # start_last_trx_polling()
+    start_last_trx_polling()
 
     ### SERVICE METRICS POLLING
     # start_service_polling()
@@ -156,7 +156,7 @@ def main():
 
     # get_historical_service_metrics()
     # get_calculated_service_metrics()
-    get_all_metrics_default_period()
+    # get_all_metrics_default_period()
 
 
     # for service in config.services:
@@ -175,52 +175,102 @@ def main():
         
 
 def get_historical_service_metrics():
+    """Main method to get the corresponding service metrics.
+    ONLY builtin metrics.
+    It takes no arguments. The future implementation will consider
+    using flags to determine the periods"""
 
+    # Get the global objects and the configuration
     client = get_dynatrace_client()
     output_manager = get_output_manager()
     config = get_config()
 
+    # This variables are not in use yet. They will be once we have the fixed periods
+    # for the queries in place.
+    DEFAULT = True
+    YEAR = False
+    MONTH = False
+    WEEK = False
+    DAY = False
+    
+    # Iterate through all the services to find the metrics
     for service in config.services:
         print(f"Querying service {service.name}")
 
+        # Get raw data for the service metrics
         data_matrix = client.read_all_database_metrics_default(service)
+        
+        # Add compliance checks for time-related metrics
         complete_matrix = add_time_threshold_columns(data_matrix, service)
+        
+        # Direct ouput to the selected channels
         output_manager.default_output(service.name, complete_matrix)
 
 def get_calculated_service_metrics():
+    """Get the calculated metrics as defined in the configuration.
+    This flow is to get those metrics ONLY (no the builtin ones)"""
     
+    # Get the global objects and the configuration
     client = get_dynatrace_client()
     output_manager = get_output_manager()
     config = get_config()
 
+    # Iterate through all the services to find the metrics
     for service in config.services:
         print(f"Querying calculated metrics for service {service.name}")
 
+        # Find if the service has calculated metrics included in the configuration
+        # Uses helper method for the ServiceMetricConfig class (included in config_loader.py)
         if service.has_calculated_metrics():
+
+            # Get raw data from the calculated metrics
             calc_matrix = client.read_all_calculated_service_metrics_default(service)
+
+            # Add compliance checks for time-related metrics
             calc_complete = add_time_threshold_columns(calc_matrix, service)
+
+            # Direct ouput to the selected channels
             output_manager.default_output(service.name, calc_complete)
+        
         else:
             print(f"Service {service.name} has no calculated metrics.")
 
 
 def get_all_metrics_default_period():
-
+    """Get all the metrics, whether builtin or calculated.
+    Keep in mind that calculated metrics only bring data from the moment
+    they were created, and hence have no 'history' """
+    
+    # Get the global objects and the configuration
     client = get_dynatrace_client()
     output_manager = get_output_manager()
     config = get_config()
 
+    # Iterate through all the services to find the metrics
     for service in config.services:
         print(f"Querying service {service.name}")
 
+        # Get raw data for the service metrics
         data_matrix = client.read_all_database_metrics_default(service)
+        
+        # Add compliance checks for time-related metrics
         complete_matrix = add_time_threshold_columns(data_matrix, service)
+        
+        # Direct ouput to the selected channels
         output_manager.default_output(service.name, complete_matrix)
 
+        # Since calculated metrics are also included, find if they exist
         if service.has_calculated_metrics():
+            
+            # Get raw data from the calculated metrics
             calc_matrix = client.read_all_calculated_service_metrics_default(service)
+            
+            # Add compliance checks for time-related metrics
             calc_complete = add_time_threshold_columns(calc_matrix, service)
+            
+            # Direct ouput to the selected channels
             output_manager.default_output(service.name, calc_complete)
+        
         else:
             print(f"Service {service.name} has no calculated metrics.")
 

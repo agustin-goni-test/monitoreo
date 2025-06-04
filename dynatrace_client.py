@@ -224,7 +224,7 @@ class DynatraceClient:
         Formats the metric value based on its type.
         """
         try:
-            numeric_value = int(value)
+            numeric_value = float(value)
         except (ValueError, TypeError):
             return value  # If not a number, return as-is.
 

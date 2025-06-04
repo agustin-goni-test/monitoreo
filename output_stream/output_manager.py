@@ -11,6 +11,7 @@ class OutputManager:
         config = get_config()
         self.writers: list[OutputWriter] = []
 
+        # List of available writers (extensible)
         available_writers = {
             "Screen": ScreenWriter,
             "CSV": CSVWriter,
@@ -18,9 +19,10 @@ class OutputManager:
             # add other writers here later (e.g., JSONWriter)
         }
 
+        # Structure to hold selected writer (per configuration)
         selected_writers = []
 
-        # 1. Check if All is True
+        # 1. Check if All is True. If so, add them all
         if config.output_format.All:
             selected_writers = list(available_writers.keys())
         else:
@@ -43,10 +45,18 @@ class OutputManager:
             self.writers.append(writer_class())
 
     def default_output(self, service_name: str, data_matrix: list[list]):
+        """Creates the output as used with the default configuration"""
+        
+        # Iterate through all writers
         for writer in self.writers:
+            
+            # If one of the select writers is for an Excel output
             if isinstance(writer, ExcelWriter):
+                
+                # Pass sheet name as additional argument
                 sheet_name = "Default"  # or generate it dynamically if needed
                 writer.write_default(service_name, data_matrix, sheet_name=sheet_name)
+           
             else:
                 writer.write_default(service_name, data_matrix)
             

@@ -31,11 +31,11 @@ class CSVWriter(OutputWriter):
             for row in data_matrix[1:]:  # Skip header row since we’re labeling columns
                 output_row = []
                 for col_name, value in zip(header, row):
-                    value_str = str(value)
+                    value_str = str(value) if value else ""
                     output_row.append(value_str)
                 writer.writerow(output_row)
 
-        print(f"\nWrote a total of {len(data_matrix) - 1} data points, with {len(data_matrix[0]) - 1} columns, to the CSV file '{filename}'")
+        print(f"\nWrote a total of {len(data_matrix) - 2} data points, with {len(data_matrix[0]) - 1} columns, to the CSV file '{filename}'")
 
 
     def write_last_trx_poll(self, polling_data: TransactionPolling):
