@@ -5,6 +5,8 @@ from openpyxl.utils import get_column_letter
 from polling.poller import TransactionPolling
 from datetime import datetime
 import openpyxl
+import glob
+import re
 
 class ExcelWriter(OutputWriter):
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
@@ -102,7 +104,7 @@ class ExcelWriter(OutputWriter):
             workbook = Workbook()
             sheet = workbook.active
 
-             # Write header row
+            # Write header row
             sheet.append([
                 "Poll time",
                 "Year",
@@ -177,6 +179,90 @@ class ExcelWriter(OutputWriter):
 
             os.rename(old_path, new_path)
             print(f"Renamed file to: {new_name}")
+
+
+    def write_polling_stats(self, service_name, stats_list):
+        
+        output_dir = "output_files"
+        os.makedirs(output_dir, exist_ok=True)
+
+        date_str = datetime.now().strftime("%Y_%m_%d")
+        base_filename = f"Poll_{service_name}"
+        pattern = os.path.join(output_dir, f"{base_filename}*.xlsx")
+        matches = glob.glob(pattern)
+
+        filename = None
+        if matches:
+            # Use the first match (could refine to pick the latest if needed)
+            filename = matches[0]
+        else:
+            filename = os.path.join(output_dir, f"{base_filename}.xlsx")
+
+        # Check if the file exists; load it or create a new one
+        if os.path.exists(filename):
+            workbook = openpyxl.load_workbook(filename)
+            sheet = workbook.active
+        else:
+            workbook = Workbook()
+            sheet = workbook.active
+
+            # Write header row
+            sheet.append([
+                "Poll time",
+                "Metric Name",
+                "Mean (ms)",
+                "Median (ms)",
+                "Min (ms)",
+                "Max (ms)",
+                "StdDev (ms)",
+                "Compliance"
+            ])
+
+        # Write values
+        poll_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for metric_name, stats in stats_list:
+            row = [
+                    poll_time,
+                    metric_name,
+                    f"{stats.mean:.2f}",
+                    f"{stats.median:.2f}",
+                    f"{stats.min:.2f}",
+                    f"{stats.max:.2f}",
+                    f"{stats.std_dev:.2f}",
+                    str(stats.compliance)
+                ]
+            
+            sheet.append(row)
+        
+        workbook.save(filename)
+        print(f"Appended polling data to {filename}")
+
+
+    def finalize_polling_file(self, service_name):
+        """
+        Rename the polling file to include a timestamp (to the second),
+        ignoring files that already have a timestamp.
+        """
+        output_dir = "output_files"
+        base_filename = f"Poll_{service_name}"
+        pattern = os.path.join(output_dir, f"{base_filename}*.xlsx")
+        matches = glob.glob(pattern)
+
+        if matches:
+            # Use the first match (you could refine this to pick the latest if needed)
+            filename = matches[0]
+            base_name, ext = os.path.splitext(os.path.basename(filename))
+            # Remove any existing timestamp suffix at the end
+            base_name = re.sub(r' - \d{2}-\d{2}-\d{2}$', '', base_name)
+            timestamp_str = datetime.now().strftime("%H-%M-%S")
+            new_filename = f"{base_name} - {timestamp_str}{ext}"
+            new_filepath = os.path.join(output_dir, new_filename)
+            os.rename(filename, new_filepath)
+            print(f"Renamed file to: {new_filepath}")
+        else:
+            print(f"No file found to finalize for service '{service_name}'.")
+
+
 
     
     # Helper method to handle file names

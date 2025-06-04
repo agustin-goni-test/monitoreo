@@ -1,4 +1,0 @@
-Poll time,Metric Name,Mean (ms),Median (ms),Min (ms),Max (ms),StdDev (ms),Compliance
-2025-06-03 19:53:51,response_time,0.66,0.05,0.02,4.22,1334.84,True
-2025-06-03 19:54:23,response_time,0.66,0.05,0.02,4.22,1335.38,True
-2025-06-03 19:54:56,response_time,0.66,0.05,0.02,4.22,1335.38,True

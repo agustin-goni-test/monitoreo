@@ -5,6 +5,7 @@ from polling.poller import TransactionPolling, PollingStats
 from datetime import datetime
 from typing import List, Tuple
 import glob
+import re
 
 class CSVWriter(OutputWriter):
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
@@ -90,7 +91,6 @@ class CSVWriter(OutputWriter):
         output_dir = "output_files"
         os.makedirs(output_dir, exist_ok=True)
 
-        boutput_dir = "output_files"
         base_filename = os.path.join(output_dir, f"Poll_{service_name}")
         filename = self._find_existing_file(base_filename)
 
@@ -133,7 +133,7 @@ class CSVWriter(OutputWriter):
     def finalize_polling_file(self, service_name: str):
         """
         Rename the polling file to include a timestamp (to the second),
-        ignoring files that already have a timestamp.
+        always removing any existing timestamp.
         """
         output_dir = "output_files"
         base_filename = os.path.join(output_dir, f"Poll_{service_name}")
@@ -141,13 +141,14 @@ class CSVWriter(OutputWriter):
 
         if os.path.exists(filename):
             base_name = os.path.splitext(os.path.basename(filename))[0]
-            if " - " not in base_name:
-                timestamp_str = datetime.now().strftime("%H-%M-%S")
-                ext = os.path.splitext(filename)[1]
-                new_filename = f"{base_name} - {timestamp_str}{ext}"
-                new_filepath = os.path.join(output_dir, new_filename)
-                os.rename(filename, new_filepath)
-                print(f"Renamed file to: {new_filepath}")
+            # Remove any existing timestamp suffix
+            base_name = re.sub(r' - \d{2}-\d{2}-\d{2}$', '', base_name)
+            ext = os.path.splitext(filename)[1]
+            timestamp_str = datetime.now().strftime("%H-%M-%S")
+            new_filename = f"{base_name} - {timestamp_str}{ext}"
+            new_filepath = os.path.join(output_dir, new_filename)
+            os.rename(filename, new_filepath)
+            print(f"Renamed file to: {new_filepath}")
 
 
     def _find_existing_file(self, base_filename: str) -> str:

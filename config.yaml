@@ -3,7 +3,7 @@ debug: false
 output_format:
   Screen: true
   CSV: true
-  Excel: false
+  Excel: true
   All: false
   Default: Screen
 
