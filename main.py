@@ -50,22 +50,36 @@ def main():
     # site_client.set_token(token)
     # response = site_client.get_last_transaction("09743043-8")
     # print(response)
+    
 
+
+
+    # Obtener métricas calculadas
+    # get_calculated_service_metrics()
     
-    
+
+
     
     ### LAST TRANSACTION POLLING LOGIC
-    error_count = 0
-    retry_polling = True
-    while True:
-        retry_polling = start_last_trx_polling()
-        if not retry_polling:
-            break
-        print("Polling has restarted after error...")
-        error_count += 1
+    # error_count = 0
+    # retry_polling = True
+    # while True:
+    #     retry_polling = start_last_trx_polling()
+    #     if not retry_polling:
+    #         break
+    #     print("Polling has restarted after error...")
+    #     error_count += 1
     
-    print(f"Number of errors and restarts: {error_count}")
+    # print(f"Number of errors and restarts: {error_count}")
 
+    
+    start_service_polling()
+
+    
+    
+    
+    
+    
     ### SERVICE METRICS POLLING
     # start_service_polling()
 

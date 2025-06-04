@@ -71,7 +71,9 @@ class CSVWriter(OutputWriter):
         """
         output_dir = "output_files"
         date_str = datetime.now().strftime("%Y_%m_%d")
+        # filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
         filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
+
 
         if os.path.exists(filename):
             base, ext = os.path.splitext(filename)

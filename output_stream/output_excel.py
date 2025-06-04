@@ -207,10 +207,10 @@ class ExcelWriter(OutputWriter):
         # Define header row (without Metric Name, as each sheet is specific)
         header = [
             "Poll time",
-            "Mean (ms)",
-            "Median (ms)",
-            "Min (ms)",
-            "Max (ms)",
+            "Mean (s)",
+            "Median (s)",
+            "Min (s)",
+            "Max (s)",
             "StdDev (ms)",
             "Compliance"
         ]
@@ -235,11 +235,11 @@ class ExcelWriter(OutputWriter):
 
             row = [
                 poll_time,
-                f"{stats.mean:.2f}",
-                f"{stats.median:.2f}",
-                f"{stats.min:.2f}",
-                f"{stats.max:.2f}",
-                f"{stats.std_dev:.2f}",
+                stats.mean,
+                stats.median,
+                stats.min,
+                stats.max,
+                stats.std_dev,
                 str(stats.compliance)
             ]
             sheet.append(row)
