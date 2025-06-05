@@ -61,19 +61,19 @@ def main():
 
     
     ### LAST TRANSACTION POLLING LOGIC
-    # error_count = 0
-    # retry_polling = True
-    # while True:
-    #     retry_polling = start_last_trx_polling()
-    #     if not retry_polling:
-    #         break
-    #     print("Polling has restarted after error...")
-    #     error_count += 1
+    error_count = 0
+    retry_polling = True
+    while True:
+        retry_polling = start_last_trx_polling()
+        if not retry_polling:
+            break
+        print("Polling has restarted after error...")
+        error_count += 1
     
-    # print(f"Number of errors and restarts: {error_count}")
+    print(f"Number of errors and restarts: {error_count}")
 
     
-    start_service_polling()
+    # start_service_polling()
 
     
     

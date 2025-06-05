@@ -42,11 +42,18 @@ class CSVWriter(OutputWriter):
         """
         Write transaction polling data to a daily CSV file.
         """
+        # output_dir = "output_files"
+        # os.makedirs(output_dir, exist_ok=True)
+
+        # date_str = datetime.now().strftime("%Y_%m_%d")
+        # filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
+
         output_dir = "output_files"
         os.makedirs(output_dir, exist_ok=True)
 
         date_str = datetime.now().strftime("%Y_%m_%d")
-        filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
+        base_filename = os.path.join(output_dir, f"trx_polling_{date_str}")
+        filename = self._find_existing_file(base_filename)  # Reuse the same helper method
 
         file_exists = os.path.exists(filename)
         with open(filename, mode='a', newline='') as csvfile:
@@ -69,11 +76,17 @@ class CSVWriter(OutputWriter):
         """
         Rename the current day's polling file to include a timestamp when the process is interrupted.
         """
+        # output_dir = "output_files"
+        # date_str = datetime.now().strftime("%Y_%m_%d")
+        # # filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
+        # filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
+        
         output_dir = "output_files"
         date_str = datetime.now().strftime("%Y_%m_%d")
-        # filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
-        filename = os.path.join(output_dir, f"trx_polling_{date_str}.csv")
+        base_filename = os.path.join(output_dir, f"trx_polling_{date_str}")
 
+        # Use the same logic to find an existing file with or without timestamp
+        filename = self._find_existing_file(base_filename)
 
         if os.path.exists(filename):
             base, ext = os.path.splitext(filename)
