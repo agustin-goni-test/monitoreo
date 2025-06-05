@@ -134,10 +134,14 @@ class DynatraceClient:
         return self._read_all_service_metrics(service, period, metric_source="metrics")
 
     def read_all_service_metrics_month(self, service):
-        pass
+        print(f"Getting metrics for service {service.name} for MONTH period...")
+        period = "MONTH"
+        return self._read_all_service_metrics(service, period, metric_source="metrics")
 
     def read_all_service_metrics_year(self, service):
-        pass
+        print(f"Getting metrics for service {service.name} for YEAR period...")
+        period = "YEAR"
+        return self._read_all_service_metrics(service, period, metric_source="metrics")
     
     def _read_all_service_metrics(self, service, period, metric_source="metrics"):
 

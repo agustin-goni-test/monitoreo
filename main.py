@@ -201,10 +201,10 @@ def get_historical_service_metrics():
 
     timeframes = [
         ("DEFAULT", True, "read_all_service_metrics_default"),
-        ("YEAR", False,  "read_all_service_metrics_year"), 
-        ("MONTH", False, "read_all_service_metrics_month"),
+        ("YEAR", True,  "read_all_service_metrics_year"), 
+        ("MONTH", True, "read_all_service_metrics_month"),
         ("WEEK", True, "read_all_service_metrics_week"),
-        ("DAY", False, "read_all_service_metrics_day")
+        ("DAY", True, "read_all_service_metrics_day")
     ]
     
     # Iterate through all the services to find the metrics
