@@ -31,7 +31,7 @@ class LoginClient:
         if self._token and not self._is_token_expired():
             return self._token
             
-        auth_url = f"{self.base_url}/auth"  # Adjust endpoint as needed
+        auth_url = f"{self.base_url}/login"  # Adjust endpoint as needed
         payload = {
             "user": self.user,
             "pass": self.password
@@ -51,6 +51,7 @@ class LoginClient:
                 raise RuntimeError(f"Authentication failed: {data.get('message', 'Unknown error')}")
             
             self._token = data['data']['token']
+            print (self._token)
             return self._token
             
         except requests.exceptions.RequestException as e:
@@ -69,8 +70,50 @@ class LoginClient:
 
     def _is_token_expired(self) -> bool:
         """Simple token expiry check (would need proper JWT decoding in production)"""
-        # For production: decode JWT and check expiry properly
-        return False  # Placeholder - implement proper expiry check
+        if self._token is not None:
+            auth_url = f"{self.base_url}/check"
+
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {self._token}'
+            }
+
+            try:
+                response = requests.post(
+                    auth_url,
+                    json={},
+                    headers=headers,
+                    timeout=10
+                )
+
+                response.raise_for_status()
+
+                data = response.json()
+                code = data.get('code')
+                message = data.get('message')
+
+                if code == 1 and message == "Esta autorizado":
+                    return False  # Token is valid
+                else:
+                    return True
+
+            except requests.exceptions.RequestException as e:
+                # Specific error handling
+                if "500" in str(e):
+                    raise RuntimeError("Authentication server is currently unavailable (500 error)")
+                elif "404" in str(e):
+                    raise RuntimeError("Authentication endpoint not found (404)")
+                else:
+                    raise RuntimeError(f"Authentication failed: {str(e)}")
+            except json.JSONDecodeError:
+                raise RuntimeError("Invalid JSON response from server")
+            except KeyError:
+                raise RuntimeError("Malformed authentication response")
+
+        else:
+            return True
+        
+        
 
 
 _login_client_instance: Optional[LoginClient] = None

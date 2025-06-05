@@ -2,7 +2,7 @@ debug: false
 
 flow_control:
   services:
-    query_enabled: true
+    query_enabled: false
     timeframes:
       default: true
       day: false
@@ -15,7 +15,7 @@ flow_control:
     query_enabled: false
 
   polling:
-    last_trx_polling: false
+    last_trx_polling: true
     service_polling: false
 
 

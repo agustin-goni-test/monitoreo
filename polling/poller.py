@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from config_loader import get_config
 from dynatrace_client import get_dynatrace_client
 from clients.private_site import get_private_site_client
+from clients.login import get_login_client
 from debugger import Debugger
 from typing import List, Tuple, Optional
 import statistics
@@ -177,7 +178,12 @@ class Poller:
         
         # Get client and token
         site_client = get_private_site_client()
-        token = os.getenv("PRIVATE_SITE_TOKEN")
+
+        login_client = get_login_client()
+
+        token = login_client.authenticate()
+
+        # token = os.getenv("PRIVATE_SITE_TOKEN")
         site_client.set_token(token)
         
         # Find current time

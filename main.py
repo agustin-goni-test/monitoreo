@@ -45,7 +45,18 @@ def main():
     login_client = get_login_client()
     site_client = get_private_site_client()
 
+
+
     token = os.getenv("PRIVATE_SITE_TOKEN")
+
+    my_token = login_client.authenticate()
+
+    login_client._is_token_expired()
+
+    my_token = login_client.authenticate()
+
+
+
 
     
     ############### MAIN CONTROL FLOW #########################
@@ -64,19 +75,38 @@ def main():
         if config.flow_control.services.query_enabled:
             
             # Get historical metrics. Use timeframes in configuration
-            get_historical_databse_metrics()
+            get_historical_service_metrics()
 
             # If calculated metrics are included
             # They only include the default period
             if config.flow_control.services.include_calculated_metrics:
                 get_calculated_service_metrics()
     
+    if config.flow_control.databases.query_enabled:
+        get_historical_database_metrics()
+    
     if config.flow_control.polling.last_trx_polling:
         # Activate last transaction polling
-        pass
+        # Use retries just in case there are timeouts
+        error_count = 0       
+        retry_polling = True
+        
+        # Iterate forever to retry until broken by user
+        while True:
+            retry_polling = start_last_trx_polling()
+            if not retry_polling:
+                break
+            print("Polling has restarted after error...")
+            error_count += 1
+        
+        print(f"Number of errors and restarts: {error_count}")
 
     elif config.flow_control.polling.service_polling:
-        pass
+        # Service polling, including calculated metrics
+        start_service_polling()
+
+    print("THE END")
+
 
 
 
@@ -342,7 +372,7 @@ def get_all_metrics_default_period():
             print(f"Service {service.name} has no calculated metrics.")
 
 
-def get_historical_databse_metrics():
+def get_historical_database_metrics():
     
     # Get the global objects and the configuration
     client = get_dynatrace_client()
