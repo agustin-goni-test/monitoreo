@@ -34,7 +34,7 @@ class DynatraceClient:
         to_time = "now"
 
         # Get the service metrics and return result to original caller
-        return self.get_service_metrics(service_id, service_name, resolution, from_time, to_time)
+        return self.get_service_metrics(service_id, service_name, metric, resolution, from_time, to_time)
         
     # Get the service metrics for the previous 7 days
     def _get_service_metrics_week(self, service_id, service_name, metric):
@@ -71,7 +71,7 @@ class DynatraceClient:
     
     # This method is a generic metric query, with any combination of resolution and timespan
     def get_service_metrics(self, service_id, service_name, metric, resolution, from_time, to_time):
-        
+        """Implement a query to obtain a metric from a service in the given timefram"""
         # Set up call
         url = self.base_url
         headers = {
@@ -166,9 +166,11 @@ class DynatraceClient:
                 if period == "default":
                     metric_matrix = self.get_service_metrics_default(service.id, service.name, metric_id)
                 elif period == "DAY":
-                    metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "1m", "now-1d", "now")
+                    # metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "1m", "now-1d", "now")
+                    metric_matrix = self._get_service_metrics_day(service.id, service.name, metric_id)
                 elif period == "WEEK":
-                    metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "1m", "now-7d", "now")
+                    # metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "1m", "now-7d", "now")
+                    metric_matrix = self._get_service_metrics_week(service.id, service.name, metric_id)
                 elif period == "MONTH":
                     metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "5m", "now-27d", "now")
                 elif period == "YEAR":

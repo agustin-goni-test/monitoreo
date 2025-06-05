@@ -47,10 +47,42 @@ def main():
 
     token = os.getenv("PRIVATE_SITE_TOKEN")
 
-    # site_client.set_token(token)
-    # response = site_client.get_last_transaction("09743043-8")
-    # print(response)
     
+    ############### MAIN CONTROL FLOW #########################
+
+    # This is the main condition. Execute if service query is enabled,
+    # calculated metrics are included, and timeframe is default
+    if (
+        config.flow_control.services.query_enabled and 
+        config.flow_control.services.include_calculated_metrics and
+        config.flow_control.services.timeframes.default
+    ):
+        get_all_metrics_default_period()
+
+    else:
+        # If service query is enabled in control flow
+        if config.flow_control.services.query_enabled:
+            
+            # Get historical metrics. Use timeframes in configuration
+            get_historical_databse_metrics()
+
+            # If calculated metrics are included
+            # They only include the default period
+            if config.flow_control.services.include_calculated_metrics:
+                get_calculated_service_metrics()
+    
+    if config.flow_control.polling.last_trx_polling:
+        # Activate last transaction polling
+        pass
+
+    elif config.flow_control.polling.service_polling:
+        pass
+
+
+
+
+
+
 
 
 
@@ -162,7 +194,7 @@ def main():
     # get_historical_databse_metrics()
 
 
-    get_historical_service_metrics()
+    # get_historical_service_metrics()
     # get_calculated_service_metrics()
     # get_all_metrics_default_period()
 
@@ -197,14 +229,16 @@ def get_historical_service_metrics():
 
     # This variables are not in use yet. They will be once we have the fixed periods
     # for the queries in place.
-    DEFAULT = True
+    # DEFAULT = True
 
+    # This timeframes are taken from the configuration.
+    # The methods to be called are part of the Dynatrace client class.
     timeframes = [
-        ("DEFAULT", True, "read_all_service_metrics_default"),
-        ("YEAR", True,  "read_all_service_metrics_year"), 
-        ("MONTH", True, "read_all_service_metrics_month"),
-        ("WEEK", True, "read_all_service_metrics_week"),
-        ("DAY", True, "read_all_service_metrics_day")
+        ("DEFAULT", config.flow_control.services.timeframes.default, "read_all_service_metrics_default"),
+        ("YEAR", config.flow_control.services.timeframes.year,  "read_all_service_metrics_year"), 
+        ("MONTH", config.flow_control.services.timeframes.month, "read_all_service_metrics_month"),
+        ("WEEK", config.flow_control.services.timeframes.week, "read_all_service_metrics_week"),
+        ("DAY", config.flow_control.services.timeframes.day, "read_all_service_metrics_day")
     ]
     
     # Iterate through all the services to find the metrics

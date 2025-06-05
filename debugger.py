@@ -8,10 +8,13 @@ class Debugger:
         config = get_config()
 
         print("=== Loaded Configuration ===")
+        
+        # Timeframes
         print("Timeframes:")
         for key, timeframe in config.timeframes.items():
             print(f"  {key}: from={timeframe.from_time}, to={timeframe.to_time}, resolution={timeframe.resolution}")
 
+        # Services
         print("\nServices to Monitor:")
         for service in config.services:
             print(f"  - {service.name} ({service.id}) with threshold {service.threshold_ms}ms")
@@ -25,12 +28,14 @@ class Debugger:
                 for calc_name, calc_id in service.calculated_metrics.items():
                     print(f"      * {calc_name}: {calc_id}")
 
+        # Databases
         print("\nDatabases to Monitor:")
         for db in config.databases:
             print(f"  - {db.name} ({db.id})")
             for metric_name, metric_id in db.metrics.items():
                 print(f"      * {metric_name}: {metric_id}")
 
+        # Output formats
         print("\nOutput Format Configuration:")
         print(f"  Screen: {config.output_format.Screen}")
         print(f"  CSV: {config.output_format.CSV}")
@@ -38,10 +43,31 @@ class Debugger:
         print(f"  All: {config.output_format.All}")
         print(f"  Default: {config.output_format.Default}")
 
+        # Polling 
         print("\nPolling Configuration:")
         print(f"  Resolution: {config.polling.resolution}")
         print(f"  From Time: {config.polling.from_time}")
         print(f"  To Time: {config.polling.to_time}")
+
+        # Flow Control
+        print("\nFlow Control Configuration:")
+
+        # Services Flow Control
+        print("  Services:")
+        print(f"    Query Enabled: {config.flow_control.services.query_enabled}")
+        print(f"    Include Calculated Metrics: {config.flow_control.services.include_calculated_metrics}")
+        print("    Timeframes:")
+        for timeframe_name, enabled in config.flow_control.services.timeframes.__dict__.items():
+            print(f"      * {timeframe_name}: {enabled}")
+
+        # Databases Flow Control
+        print("  Databases:")
+        print(f"    Query Enabled: {config.flow_control.databases.query_enabled}")
+
+        # Polling Flow Control
+        print("  Polling:")
+        print(f"    Last Transaction Polling: {config.flow_control.polling.last_trx_polling}")
+        print(f"    Service Polling: {config.flow_control.polling.service_polling}")
 
     @staticmethod
     def echo_polling_metrics(polling_config: Dict, metrics: List['PollingMetric']):

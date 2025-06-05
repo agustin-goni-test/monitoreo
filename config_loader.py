@@ -5,6 +5,30 @@ from pydantic import BaseModel, field_validator
 
 # -- Define your models (same as before) --
 
+class TimeFramesFlags(BaseModel):
+    default: bool
+    day: bool
+    week: bool
+    month: bool
+    year: bool
+
+class ServicesFlowControlConfig(BaseModel):
+    query_enabled: bool
+    timeframes: TimeFramesFlags
+    include_calculated_metrics: bool
+
+class DatabasesFlowControlConfig(BaseModel):
+    query_enabled: bool
+
+class PollingFlowControlConfig(BaseModel):
+    last_trx_polling: bool
+    service_polling: bool
+
+class FlowControlConfig(BaseModel):
+    services: ServicesFlowControlConfig
+    databases: DatabasesFlowControlConfig
+    polling: PollingFlowControlConfig
+
 class OutputFormatConfig(BaseModel):
     Screen: bool = True
     CSV: bool = False
@@ -47,6 +71,7 @@ class PollingConfig(BaseModel):
 
 class FullConfig(BaseModel):
     debug: bool = True
+    flow_control: FlowControlConfig
     timeframes: Dict[Literal["services", "databases"], TimeFrameConfig]
     services: List[ServiceMetricConfig]
     databases: List[DatabaseMetricConfig]
