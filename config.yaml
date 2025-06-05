@@ -9,7 +9,7 @@ output_format:
 
 timeframes:
   services:
-    from_time: "now-7d"
+    from_time: "now-1d"
     to_time: "now"
     resolution: "1m"
   databases:

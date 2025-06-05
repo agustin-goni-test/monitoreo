@@ -61,16 +61,16 @@ def main():
 
     
     ### LAST TRANSACTION POLLING LOGIC
-    error_count = 0
-    retry_polling = True
-    while True:
-        retry_polling = start_last_trx_polling()
-        if not retry_polling:
-            break
-        print("Polling has restarted after error...")
-        error_count += 1
+    # error_count = 0
+    # retry_polling = True
+    # while True:
+    #     retry_polling = start_last_trx_polling()
+    #     if not retry_polling:
+    #         break
+    #     print("Polling has restarted after error...")
+    #     error_count += 1
     
-    print(f"Number of errors and restarts: {error_count}")
+    # print(f"Number of errors and restarts: {error_count}")
 
     
     # start_service_polling()
@@ -175,6 +175,8 @@ def main():
 
     #     data_matrix = client.read_all_database_metrics_default(database)
     #     output_manager.default_output(database.name, data_matrix)
+
+    get_historical_databse_metrics()
 
 
     # get_historical_service_metrics()
@@ -296,6 +298,23 @@ def get_all_metrics_default_period():
         
         else:
             print(f"Service {service.name} has no calculated metrics.")
+
+
+def get_historical_databse_metrics():
+    
+    # Get the global objects and the configuration
+    client = get_dynatrace_client()
+    output_manager = get_output_manager()
+    config = get_config()
+
+    for database in config.databases:
+        print(f"\nQuerying database: {database.name}")
+
+        # Get raw metric for the database
+        data_matrix = client.read_all_database_metrics_default(database)
+        
+        # Direct output to the selected channels
+        output_manager.default_output(database.name, data_matrix)
 
 
 def start_last_trx_polling():
