@@ -156,32 +156,17 @@ def main():
     # Para servicio de transacciones
     # client.test_service_metrics(metric_name, "ComercioTransaccionesController", "SERVICE-FD9343224D905203", time_based=False)
 
-    # for service in config.services:
-    #     print(f"\nQuerying service: {service.name}")
-        
-    #     data_matrix = client.read_all_service_metrics_default(service)
-    #     complete_matrix = add_time_threshold_columns(data  _matrix, service)
-    #     output_manager.default_output(service.name, complete_matrix)
-
-    #     if service.has_calculated_metrics():
-    #         data_matrix2 = client.read_all_calculated_service_metrics_default(service)
-    #         complete_matrix2 = add_time_threshold_columns(data_matrix2, service)
-    #         output_manager.default_output(service.name, complete_matrix2)
-    #     else:
-    #         print(f"Service {service.name} does not have any calculated metrics.")
-
-    # for database in config.databases:
-    #     print(f"\nQuerying database: {database.name}")
-
-    #     data_matrix = client.read_all_database_metrics_default(database)
-    #     output_manager.default_output(database.name, data_matrix)
-
-    get_historical_databse_metrics()
+    
 
 
-    # get_historical_service_metrics()
+    # get_historical_databse_metrics()
+
+
+    get_historical_service_metrics()
     # get_calculated_service_metrics()
     # get_all_metrics_default_period()
+
+
 
 
     # for service in config.services:
@@ -213,23 +198,46 @@ def get_historical_service_metrics():
     # This variables are not in use yet. They will be once we have the fixed periods
     # for the queries in place.
     DEFAULT = True
-    YEAR = False
-    MONTH = False
-    WEEK = False
-    DAY = False
+
+    timeframes = [
+        ("DEFAULT", True, "read_all_service_metrics_default"),
+        ("YEAR", False,  "read_all_service_metrics_year"), 
+        ("MONTH", False, "read_all_service_metrics_month"),
+        ("WEEK", True, "read_all_service_metrics_week"),
+        ("DAY", False, "read_all_service_metrics_day")
+    ]
     
     # Iterate through all the services to find the metrics
     for service in config.services:
         print(f"Querying service {service.name}")
 
-        # Get raw data for the service metrics
-        data_matrix = client.read_all_database_metrics_default(service)
-        
-        # Add compliance checks for time-related metrics
-        complete_matrix = add_time_threshold_columns(data_matrix, service)
-        
-        # Direct ouput to the selected channels
-        output_manager.default_output(service.name, complete_matrix)
+        # This flow will execute all the outputs that are indicated in the 
+        # configuration. Therefore, this evaluates all conditions one by one,
+        # and queries for all active periods.
+
+        for timeframe, is_active, method_name in timeframes:
+            if not is_active:
+                continue
+
+            # Dynamically get the appropriate client method to call
+            client_method = getattr(client, method_name)
+
+            try:
+                # Get raw data for the service metrics.
+                # Use the dynamic service call
+                data_matrix = client_method(service)
+
+                # Add compliance checks for time-related metrics
+                complete_matrix = add_time_threshold_columns(data_matrix, service)
+                
+                # Direct ouput to the selected channels
+                # For now we are using the default output...
+                output_manager.default_output(f"{service.name}_{timeframe}", complete_matrix)
+
+            except Exception as e:
+                print(f"Error processing {timeframe} timeframe for {service.name}: {str(e)}")
+                continue
+
 
 def get_calculated_service_metrics():
     """Get the calculated metrics as defined in the configuration.

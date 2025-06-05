@@ -124,10 +124,14 @@ class DynatraceClient:
         return self._read_all_service_metrics(service, period, metric_source="calculated_metrics")
     
     def read_all_service_metrics_day(self, service):
-        pass
+        print(f"Getting metrics for service {service.name} for DAY period...")
+        period = "DAY"
+        return self._read_all_service_metrics(service, period, metric_source="metrics")
 
     def read_all_service_metrics_week(self, service):
-        pass
+        print(f"Getting metrics for service {service.name} for WEEK period...")
+        period = "WEEK"
+        return self._read_all_service_metrics(service, period, metric_source="metrics")
 
     def read_all_service_metrics_month(self, service):
         pass
@@ -157,6 +161,14 @@ class DynatraceClient:
             try:
                 if period == "default":
                     metric_matrix = self.get_service_metrics_default(service.id, service.name, metric_id)
+                elif period == "DAY":
+                    metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "1m", "now-1d", "now")
+                elif period == "WEEK":
+                    metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "1m", "now-7d", "now")
+                elif period == "MONTH":
+                    metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "5m", "now-27d", "now")
+                elif period == "YEAR":
+                    metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "1h", "now-365d", "now")     
                 
                 metric_type = self._get_metric_type(metric_name)
                 
