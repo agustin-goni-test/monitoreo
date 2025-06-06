@@ -2,17 +2,17 @@ debug: false
 
 flow_control:
   services:
-    query_enabled: true
+    query_enabled: false
     timeframes:
       default: true
       day: false
       week: false
       month: false
       year: false
-    include_calculated_metrics: true
+    include_calculated_metrics: false
 
   databases:
-    query_enabled: false
+    query_enabled: true
 
   polling:
     last_trx_polling: false
@@ -32,9 +32,9 @@ timeframes:
     to_time: "now"
     resolution: "1m"
   databases:
-    from_time: "now-1d"
+    from_time: "now-7d"
     to_time: "now"
-    resolution: "5m"
+    resolution: "1m"
 
 services:
   - name: "ComercioTransaccionesController"

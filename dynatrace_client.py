@@ -104,11 +104,18 @@ class DynatraceClient:
     
     def read_all_database_metrics_default(self, service):
         print(f"Getting metrics for database {service.name} for default period...")
-        period = "default"
+        period = "DATABASE_DEFAULT"
         return self._read_all_service_metrics(service, period)
 
-    def get_database_metrics(self, db_id):
-        pass  # implement API call
+    def get_database_metrics(self, database_id, database_name, metric):
+
+        # Get time parameters from configuration
+        resolution = self.config.timeframes["databases"].resolution
+        from_time = self.config.timeframes["databases"].from_time
+        to_time = self.config.timeframes["databases"].to_time
+
+        return self.get_service_metrics(database_id, database_name, metric, resolution, from_time, to_time)
+
 
     def poll_service(self, service_id):
         pass  # implement polling logic
@@ -174,7 +181,9 @@ class DynatraceClient:
                 elif period == "MONTH":
                     metric_matrix = self._get_service_metrics_month(service.id, service.name, metric_id)
                 elif period == "YEAR":
-                    metric_matrix = self._get_service_metrics_year(service.id, service.name, metric_id)     
+                    metric_matrix = self._get_service_metrics_year(service.id, service.name, metric_id)
+                elif period == "DATABASE_DEFAULT":
+                    metric_matrix = self.get_database_metrics(service.id, service.name, metric_id)     
                 
                 metric_type = self._get_metric_type(metric_name)
                 
