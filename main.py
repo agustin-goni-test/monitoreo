@@ -32,28 +32,28 @@ def main():
     poller = get_poller()
 
     # Obtain output manager
-    output_manager = get_output_manager()
+    # output_manager = get_output_manager()
 
-    print(f"Debug mode: {config.debug}")
 
     if config.debug:
+        print(f"Debug mode: {config.debug}")
         Debugger.echo_configuration()
         poller.echo_configuration()
 
         
-    client = get_dynatrace_client()
-    login_client = get_login_client()
-    site_client = get_private_site_client()
+    # client = get_dynatrace_client()
+    # login_client = get_login_client()
+    # site_client = get_private_site_client()
 
 
 
-    token = os.getenv("PRIVATE_SITE_TOKEN")
+    # token = os.getenv("PRIVATE_SITE_TOKEN")
 
-    my_token = login_client.authenticate()
+    # my_token = login_client.authenticate()
 
-    login_client._is_token_expired()
+    # login_client._is_token_expired()
 
-    my_token = login_client.authenticate()
+    # my_token = login_client.authenticate()
 
 
 

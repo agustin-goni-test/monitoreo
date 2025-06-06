@@ -45,18 +45,18 @@ class DynatraceClient:
         to_time = "now"
 
         # Get the service metrics and return result to original caller
-        return self.get_service_metrics(service_id, service_name, resolution, from_time, to_time)
+        return self.get_service_metrics(service_id, service_name, metric, resolution, from_time, to_time)
 
     # Get the service metrics for the previous 30 days
     def _get_service_metrics_month(self, service_id, service_name, metric):
         
         # Set parameters
         resolution = "5m"
-        from_time = "now-30d"
+        from_time = "now-27d"
         to_time = "now"
 
         # Get the service metrics and return result to original caller
-        return self.get_service_metrics(service_id, service_name, resolution, from_time, to_time)
+        return self.get_service_metrics(service_id, service_name, metric, resolution, from_time, to_time)
 
     # get the service metrics for the previous year
     def _get_service_metrics_year(self, service_id, service_name, metric):
@@ -67,7 +67,7 @@ class DynatraceClient:
         to_time = "now"
 
         # Get the service metrics and return result to original caller
-        return self.get_service_metrics(service_id, service_name, resolution, from_time, to_time)
+        return self.get_service_metrics(service_id, service_name, metric, resolution, from_time, to_time)
     
     # This method is a generic metric query, with any combination of resolution and timespan
     def get_service_metrics(self, service_id, service_name, metric, resolution, from_time, to_time):
@@ -172,9 +172,9 @@ class DynatraceClient:
                     # metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "1m", "now-7d", "now")
                     metric_matrix = self._get_service_metrics_week(service.id, service.name, metric_id)
                 elif period == "MONTH":
-                    metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "5m", "now-27d", "now")
+                    metric_matrix = self._get_service_metrics_month(service.id, service.name, metric_id)
                 elif period == "YEAR":
-                    metric_matrix = self.get_service_metrics(service.id, service.name, metric_id, "1h", "now-365d", "now")     
+                    metric_matrix = self._get_service_metrics_year(service.id, service.name, metric_id)     
                 
                 metric_type = self._get_metric_type(metric_name)
                 

@@ -2,20 +2,20 @@ debug: false
 
 flow_control:
   services:
-    query_enabled: false
+    query_enabled: true
     timeframes:
       default: true
       day: false
       week: false
       month: false
       year: false
-    include_calculated_metrics: false
+    include_calculated_metrics: true
 
   databases:
     query_enabled: false
 
   polling:
-    last_trx_polling: true
+    last_trx_polling: false
     service_polling: false
 
 
@@ -32,7 +32,7 @@ timeframes:
     to_time: "now"
     resolution: "1m"
   databases:
-    from_time: "now-7d"
+    from_time: "now-1d"
     to_time: "now"
     resolution: "5m"
 

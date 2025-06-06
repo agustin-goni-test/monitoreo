@@ -84,6 +84,15 @@ class Poller:
         return metrics
     
     def poll_metric_from_service(self, metric: PollingMetric) -> PollingStats:
+        """
+        Get data for a given service and metric (call wrapper).
+
+        Args:
+            metric: Information about the metric to poll (includes service).
+
+        Returns:
+            Polling stats for the metric.
+        """
         client = get_dynatrace_client()
         service_name = metric.service_name
         service_id = metric.service_id
@@ -179,11 +188,13 @@ class Poller:
         # Get client and token
         site_client = get_private_site_client()
 
+        # Get login client to obtain token
         login_client = get_login_client()
 
+        # Authenticate in login service (obtain token)
         token = login_client.authenticate()
 
-        # token = os.getenv("PRIVATE_SITE_TOKEN")
+        # Set token for private site client
         site_client.set_token(token)
         
         # Find current time
