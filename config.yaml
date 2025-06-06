@@ -5,10 +5,10 @@ flow_control:
     query_enabled: false
     timeframes:
       default: true
-      day: false
-      week: false
-      month: false
-      year: false
+      day: true
+      week: true
+      month: true
+      year: true
     include_calculated_metrics: false
 
   databases:

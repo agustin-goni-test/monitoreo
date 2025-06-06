@@ -296,7 +296,7 @@ def get_historical_service_metrics():
                 
                 # Direct ouput to the selected channels
                 # For now we are using the default output...
-                output_manager.default_output(f"{service.name}_{timeframe}", complete_matrix)
+                output_manager.default_output(service.name, complete_matrix, timeframe=timeframe)
 
             except Exception as e:
                 print(f"Error processing {timeframe} timeframe for {service.name}: {str(e)}")
@@ -327,7 +327,7 @@ def get_calculated_service_metrics():
             calc_complete = add_time_threshold_columns(calc_matrix, service)
 
             # Direct ouput to the selected channels
-            output_manager.default_output(service.name, calc_complete)
+            output_manager.default_output(service.name, calc_complete, timeframe="CALC")
         
         else:
             print(f"Service {service.name} has no calculated metrics.")
@@ -354,7 +354,7 @@ def get_all_metrics_default_period():
         complete_matrix = add_time_threshold_columns(data_matrix, service)
         
         # Direct ouput to the selected channels
-        output_manager.default_output(service.name, complete_matrix)
+        output_manager.default_output(service.name, complete_matrix, timeframe="DEFAULT")
 
         # Since calculated metrics are also included, find if they exist
         if service.has_calculated_metrics():
@@ -366,7 +366,7 @@ def get_all_metrics_default_period():
             calc_complete = add_time_threshold_columns(calc_matrix, service)
             
             # Direct ouput to the selected channels
-            output_manager.default_output(service.name, calc_complete)
+            output_manager.default_output(service.name, calc_complete, timeframe="CALC")
         
         else:
             print(f"Service {service.name} has no calculated metrics.")
@@ -386,14 +386,14 @@ def get_historical_database_metrics():
         data_matrix = client.read_all_database_metrics_default(database)
         
         # Direct output to the selected channels
-        output_manager.default_output(database.name, data_matrix)
+        output_manager.default_output(database.name, data_matrix, timeframe="DEFAULT")
 
 
 def start_last_trx_polling():
     poller = get_poller()
     output_manager = get_output_manager()
 
-    print("Starting last transaction poll... press any key to interrupt")
+    print("Starting last transaction polling... press CTRL + C to interrupt")
 
     try:
         while True:
@@ -425,6 +425,8 @@ def start_last_trx_polling():
 
 
 def start_service_polling():
+
+    print("Starting service polling... press CTRL + C to interrupt")
 
     poller = get_poller()
     output_manager = get_output_manager()

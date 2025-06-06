@@ -11,15 +11,16 @@ import re
 class ExcelWriter(OutputWriter):
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
         sheet_name = kwargs.get('sheet_name', 'Sheet1')
+        argument = kwargs.get('argument')
         
         output_dir = "output_files"
         os.makedirs(output_dir, exist_ok=True)
         
-        base_filename = f"{service_name}_output.xlsx"
+        base_filename = f"{service_name}_{sheet_name}_output.xlsx"
         filename = os.path.join(output_dir, base_filename)
         counter = 1
         while os.path.exists(filename):
-            filename = os.path.join(output_dir, f"{service_name}_output_{counter}.xlsx")
+            filename = os.path.join(output_dir, f"{service_name}_{sheet_name}_output_{counter}.xlsx")
             counter += 1
         
         wb = Workbook()

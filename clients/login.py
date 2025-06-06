@@ -51,7 +51,6 @@ class LoginClient:
                 raise RuntimeError(f"Authentication failed: {data.get('message', 'Unknown error')}")
             
             self._token = data['data']['token']
-            print (self._token)
             return self._token
             
         except requests.exceptions.RequestException as e:

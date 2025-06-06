@@ -44,18 +44,23 @@ class OutputManager:
             writer_class = available_writers[writer_name]
             self.writers.append(writer_class())
 
-    def default_output(self, service_name: str, data_matrix: list[list]):
+    def default_output(self, service_name: str, data_matrix: list[list], **kwargs):
         """Creates the output as used with the default configuration"""
+
+        timeframe = kwargs.get('timeframe')
+        print(timeframe)
         
         # Iterate through all writers
         for writer in self.writers:
             
             # If one of the select writers is for an Excel output
-            if isinstance(writer, ExcelWriter):
-                
+            if isinstance(writer, ExcelWriter):                
                 # Pass sheet name as additional argument
-                sheet_name = "Default"  # or generate it dynamically if needed
-                writer.write_default(service_name, data_matrix, sheet_name=sheet_name)
+                # sheet_name = "Default"  # or generate it dynamically if needed
+                writer.write_default(service_name, data_matrix, sheet_name=timeframe)
+            elif isinstance(writer, CSVWriter):
+                suffix = timeframe
+                writer.write_default(service_name, data_matrix, suffix=timeframe)
            
             else:
                 writer.write_default(service_name, data_matrix)

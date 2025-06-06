@@ -9,15 +9,16 @@ import re
 
 class CSVWriter(OutputWriter):
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
+        suffix = kwargs.get('suffix')
         output_dir = "output_files"  # changed folder name here
         os.makedirs(output_dir, exist_ok=True)  # create folder if missing
         
-        base_filename = f"{service_name}_output.csv"
+        base_filename = f"{service_name}_{suffix}_output.csv"
         filename = os.path.join(output_dir, base_filename)
         counter = 1
 
         while os.path.exists(filename):
-            filename = os.path.join(output_dir, f"{service_name}_output_{counter}.csv")
+            filename = os.path.join(output_dir, f"{service_name}_{suffix}_output_{counter}.csv")
             counter += 1
 
         with open(filename, mode='w', newline='') as csvfile:
