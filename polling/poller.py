@@ -93,6 +93,7 @@ class Poller:
         Returns:
             Polling stats for the metric.
         """
+
         client = get_dynatrace_client()
         service_name = metric.service_name
         service_id = metric.service_id
@@ -100,13 +101,26 @@ class Poller:
         resolution = self.config.polling.resolution
         from_time = self.config.polling.from_time
         to_time = self.config.polling.to_time
+
         data_matrix = self.client.get_service_metrics(service_id, service_name, metric_id, resolution, from_time, to_time)
         
         # stats = PollingStats()
         # average = self.average_time_ms(data_matrix) / 1000
-        return self.calculate_polling_stats(data_matrix)
-
-      
+        try:
+            return self.calculate_polling_stats(data_matrix)
+        except:
+            # If the calculate_polling_stats raised an error due to no valid values
+            # (that is, the are no data point in the given time windows),
+            # retur a class with value that indicate no measurements
+            return PollingStats (
+                mean=0.0,
+                median=0.0,          
+                min=0.0,
+                max=0.0,
+                std_dev=0.0,
+                compliance=True
+            )
+     
 
 
     def average_time_ms(self, metric_data: List[Tuple[int, Optional[float]]]) -> float:

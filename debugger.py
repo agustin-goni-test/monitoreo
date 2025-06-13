@@ -1,4 +1,5 @@
 from config_loader import get_config
+from clients.synth_monitor import get_synth_monitor_client
 from typing import Dict, List
 
 class Debugger:
@@ -82,5 +83,16 @@ class Debugger:
             print(f"{metric.service_name} ({metric.service_id}):")
             print(f"  - {metric.metric_name} ({metric_type})")
             print(f"    ID: {metric.metric_id}")
+
+    @staticmethod
+    def echo_synth_monitor_client_config():
+        synthetic_monitor_client = get_synth_monitor_client()
+        print("\n=== Synthetic monitor client configuration")
+        print(f"Environment URL v1: {synthetic_monitor_client.environment_url_v1}")
+        print(f"Environment URL v2: {synthetic_monitor_client.environment_url_v2}")
+        print(f"Configuration URL: {synthetic_monitor_client.configuration_url}")
+        print(f"User token: {synthetic_monitor_client.user_token}")
+        print(f"Monitor admin token: {synthetic_monitor_client.monitor_admin_token}")
+
 
 

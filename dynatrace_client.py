@@ -47,7 +47,7 @@ class DynatraceClient:
         # Get the service metrics and return result to original caller
         return self.get_service_metrics(service_id, service_name, metric, resolution, from_time, to_time)
 
-    # Get the service metrics for the previous 30 days
+    # Get the service metrics for the previous 27 days (due to data limitations)
     def _get_service_metrics_month(self, service_id, service_name, metric):
         
         # Set parameters
@@ -102,11 +102,13 @@ class DynatraceClient:
         # Return a results matrix
         return data_matrix
     
+    # This method is used to separate the query database metrics with their own default parameters
     def read_all_database_metrics_default(self, service):
         print(f"Getting metrics for database {service.name} for default period...")
         period = "DATABASE_DEFAULT"
         return self._read_all_service_metrics(service, period)
 
+    # This method is used to separate the query database metrics with their own default parameters
     def get_database_metrics(self, database_id, database_name, metric):
 
         # Get time parameters from configuration
@@ -286,7 +288,8 @@ class DynatraceClient:
 
         return timestamps_and_values
 
-    def test_service_metrics(self, metric_name, service_name, service_id, time_based):
+    def test_service_metrics(self, metric_name, service_name, service_id, resolution, from_time, to_time, time_based):
+        """This method can test calling a specific metric and getting results"""
 
         print(f"Testing a call for service name: {service_name} and metric {metric_name}\n")
         print("Attempting to query the last 2 hours with a 1 minute resolution... \n\n")
@@ -303,11 +306,15 @@ class DynatraceClient:
         }
         params = {
             'metricSelector': metric_name,
-            'resolution': '1m',
+            'resolution': resolution,
             'entitySelector': f'entityId({service_id})',
-            'from': 'now-30m',
-            'to': 'now'
+            'from': from_time,
+            'to': to_time
         }
+
+        # params = {
+        #     'metricSelector': 'calc%3Asynthetic.browser.klapclflujo.visuallycomplete'
+        # }
 
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()

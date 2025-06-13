@@ -8,7 +8,11 @@ import glob
 import re
 
 class CSVWriter(OutputWriter):
+
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
+        """
+        Write the default output
+        """
         suffix = kwargs.get('suffix')
         output_dir = "output_files"  # changed folder name here
         os.makedirs(output_dir, exist_ok=True)  # create folder if missing

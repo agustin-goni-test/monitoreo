@@ -9,7 +9,11 @@ import glob
 import re
 
 class ExcelWriter(OutputWriter):
+    
     def write_default(self, service_name: str, data_matrix: list[list], **kwargs):
+        """
+        Write the default output
+        """
         sheet_name = kwargs.get('sheet_name', 'Sheet1')
         argument = kwargs.get('argument')
         

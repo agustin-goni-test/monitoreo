@@ -4,19 +4,19 @@ flow_control:
   services:
     query_enabled: false
     timeframes:
-      default: true
-      day: true
-      week: true
-      month: true
-      year: true
-    include_calculated_metrics: false
+      default: false
+      day: false
+      week: false
+      month: false
+      year: false
+    include_calculated_metrics: true
 
   databases:
-    query_enabled: true
+    query_enabled: false
 
   polling:
     last_trx_polling: false
-    service_polling: false
+    service_polling: true
 
 
 output_format:
@@ -28,7 +28,7 @@ output_format:
 
 timeframes:
   services:
-    from_time: "now-15m"
+    from_time: "now-7d"
     to_time: "now"
     resolution: "1m"
   databases:
@@ -77,6 +77,10 @@ services:
       failure_rate: "builtin:service.errors.total.rate"
       server_failure_rate: "builtin:service.errors.server.rate"
       server_success_rate: "builtin:service.successes.server.rate"
+    calculated_metrics:
+      by_range_response_time: "calc:service.responsetime_abonos_byrange"
+      today_response_time: "calc:service.responsetime_abonos_abonosdehoy"
+
       
 
 databases:
@@ -89,7 +93,7 @@ databases:
       failed_connections_count: "builtin:service.dbconnections.failure"
 
 polling:
-  resolution: "5m"
-  from_time: "now-6h"
+  resolution: "1m"
+  from_time: "now-10m"
   to_time: "now"
   
