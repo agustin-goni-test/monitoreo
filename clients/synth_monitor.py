@@ -223,16 +223,8 @@ class SynthMonitorClient:
             headers['If-Match'] = etag
 
         monitor_data = monitor.to_json(False)
-        print("New parameters to be sent to PUT operation...")
-        print(monitor_data)
-        
-        with open("output_files/After.txt", "w") as file:
-            file.write(monitor_data)
 
         try:
-            # Convert synthetic monitor objecto to JSON
-            # monitor_data = monitor.to_json()
-
             # Call PUT operation
             response = requests.put(full_url, headers=headers, data=monitor_data)
 

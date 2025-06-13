@@ -15,8 +15,8 @@ flow_control:
     query_enabled: false
 
   polling:
-    last_trx_polling: false
-    service_polling: true
+    last_trx_polling: true
+    service_polling: false
 
 
 output_format:
