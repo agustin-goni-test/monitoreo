@@ -17,6 +17,10 @@ def main():
     # abono_mercado_pago = "HTTP_CHECK-8BEE0BF63C2C4D4D"
     abono_promedio = "HTTP_CHECK-5318DC3B9571D311"
 
+    sleep_monitor(abono_promedio)
+
+    print("OK")
+
     success = initialize_monitor(abono_promedio)
 
     if success:
@@ -111,6 +115,9 @@ def initialize_monitor(monitor_id: str) -> bool:
     # (regardless of what it had before)
     new_monitor = update_header_in_monitor(token, monitor)
 
+    # Make sure the monitor is enabled
+    new_monitor.enabled = True
+
     # Update the monitor's parameters with the token
     success = synth_client.update_monitor_parameters_by_id(monitor_id, new_monitor)
     if success:
@@ -119,6 +126,30 @@ def initialize_monitor(monitor_id: str) -> bool:
     else:
         print(f"Failed to initialize monitor {monitor_id}")
         return False
+    
+
+    
+def sleep_monitor(monitor_id: str) -> bool:
+    # Get synthetic monitor client
+    try:
+        synth_client = get_synth_monitor_client()
+    except Exception as e:
+        print(f"There was a error attempting to fetch the synthetic monitor client: {str(e)}")
+
+    monitor = synth_client.get_monitor_parameters_by_id(monitor_id)
+    
+    # Disable monitor
+    monitor.enabled = False
+
+    # Update the monitor's parameters with the token
+    success = synth_client.update_monitor_parameters_by_id(monitor_id, monitor)
+    if success:
+        print(f"Monitor {monitor_id} was successfully disabled")
+        return True
+    else:
+        print(f"Failed to disable monitor {monitor_id}")
+        return False
+
 
 
 def update_token_in_monitor(monitor_id: str):
