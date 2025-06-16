@@ -9,14 +9,14 @@ flow_control:
       week: false
       month: false
       year: false
-    include_calculated_metrics: true
+    include_calculated_metrics: false
 
   databases:
     query_enabled: false
 
   polling:
     last_trx_polling: true
-    service_polling: false
+    service_polling: true
 
 
 output_format:

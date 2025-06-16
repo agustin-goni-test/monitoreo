@@ -11,9 +11,14 @@ from datetime import datetime
 import time
 from collections import defaultdict
 from typing import List, Tuple
+import threading
+import signal
+import sys
 
 _output_manager = OutputManager()
 _poller = Poller()
+
+stop_event = threading.Event()
 
 def get_output_manager():
     return _output_manager
@@ -65,30 +70,64 @@ def main():
     
     if config.flow_control.databases.query_enabled:
         get_historical_database_metrics()
-    
-    if config.flow_control.polling.last_trx_polling:
-        # Activate last transaction polling
-        # Use retries just in case there are timeouts
-        error_count = 0       
-        retry_polling = True
-        
-        # Iterate forever to retry until broken by user
-        while True:
-            retry_polling = start_last_trx_polling()
-            if not retry_polling:
-                break
-            print("Polling has restarted after error...")
-            error_count += 1
-        
-        print(f"Number of errors and restarts: {error_count}")
 
-    elif config.flow_control.polling.service_polling:
-        # Service polling, including calculated metrics
-        start_service_polling()
+    threads = []
+
+    if config.flow_control.polling.last_trx_polling:
+        t1 = threading.Thread(target=wrap_polling(start_last_trx_polling), name="LastTrxPolling")
+        threads.append(t1)
+
+    if config.flow_control.polling.service_polling:
+        t2 = threading.Thread(target=wrap_polling(start_service_polling), name="ServicePolling")
+        threads.append(t2)
+
+    for t in threads:
+        t.start()
+
+    try:
+        while not stop_event.is_set():
+            for t in threads:
+                t.join(timeout=1)
+    except KeyboardInterrupt:
+        print(f"\nInterrupted by user, stopping all polling...")
+        stop_event.set()
+        for t in threads:
+            t.join()
+        sys.exit(0)
+    
+    # if config.flow_control.polling.last_trx_polling:
+    #     # Activate last transaction polling
+    #     # Use retries just in case there are timeouts
+    #     error_count = 0       
+    #     retry_polling = True
+        
+    #     # Iterate forever to retry until broken by user
+    #     while True:
+    #         retry_polling = start_last_trx_polling()
+    #         if not retry_polling:
+    #             break
+    #         print("Polling has restarted after error...")
+    #         error_count += 1
+        
+    #     print(f"Number of errors and restarts: {error_count}")
+
+    # elif config.flow_control.polling.service_polling:
+    #     # Service polling, including calculated metrics
+    #     start_service_polling()
 
     print("THE END")
 
 
+
+def wrap_polling(polling_function):
+    def wrapped():
+        try:
+            polling_function(stop_event)
+        except Exception as e:
+            print(f"Error in thread for {polling_function.__nam__}: {str(e)}")
+        finally:
+            stop_event.set()
+    return wrapped
 
 
 def get_historical_service_metrics():
@@ -234,14 +273,15 @@ def get_historical_database_metrics():
         output_manager.default_output(database.name, data_matrix, timeframe="DEFAULT")
 
 
-def start_last_trx_polling():
+def start_last_trx_polling(stop_event):
+
     poller = get_poller()
     output_manager = get_output_manager()
 
     print("Starting last transaction polling... press CTRL + C to interrupt")
 
     try:
-        while True:
+        while not stop_event.is_set():
             # Get current time to maintain regular interval
             last_poll = datetime.now()
 
@@ -256,7 +296,8 @@ def start_last_trx_polling():
             remaining_time = max(0, 30 - processing_time)
 
             # Wait before next poll
-            time.sleep(remaining_time)           
+            # time.sleep(remaining_time)
+            sleep_with_interrupt(remaining_time, stop_event)           
 
     except KeyboardInterrupt:
         print("\nInterrupted by user.")
@@ -269,7 +310,7 @@ def start_last_trx_polling():
         
 
 
-def start_service_polling():
+def start_service_polling(stop_event):
 
     print("Starting service polling... press CTRL + C to interrupt")
 
@@ -297,7 +338,7 @@ def start_service_polling():
         metrics_by_service[metric.service_name].append(metric)
 
     try:
-        while True:
+        while not stop_event.is_set():
             # Get the list of all the selected metrics for each service name
             for service_name, metrics in metrics_by_service.items():
                 current_time = datetime.now()
@@ -318,7 +359,7 @@ def start_service_polling():
 
             print("Polling complete... waiting 30 seconds...")
             print (f"Polling configuration, from: {from_time}, to: {to_time}, resolution: {resolution}")
-            time.sleep(30)
+            sleep_with_interrupt(30, stop_event)
 
     except KeyboardInterrupt:
         print("\nInterrupted by user.")
@@ -327,6 +368,13 @@ def start_service_polling():
     finally:
         for service_name, _ in metrics_by_service.items():
             output_manager.finalize_polling_file(service_name)
+
+
+def sleep_with_interrupt(seconds, stop_event):
+    for _ in range(int(seconds * 10)):  # check every 0.1s
+        if stop_event.is_set():
+            break
+        time.sleep(0.1)
     
 
 def add_time_threshold_columns(matrix, service):
