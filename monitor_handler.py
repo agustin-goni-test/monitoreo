@@ -17,28 +17,33 @@ def main():
     # abono_mercado_pago = "HTTP_CHECK-8BEE0BF63C2C4D4D"
     abono_promedio = "HTTP_CHECK-5318DC3B9571D311"
 
-    sleep_monitor(abono_promedio)
+    # sleep_monitor(abono_promedio)
 
     print("OK")
 
-    success = initialize_monitor(abono_promedio)
+    success = True
+    # success = initialize_monitor(abono_promedio)
 
-    if success:
-        while True:
-            try:
-                token_needed = login.token_refresh_needed()
-                if not token_needed:
-                    print("No need to update the token for now")
-                else:
-                    print("Token must be updated")
-                    update_header_in_monitor(abono_promedio)
-                sleep(30)
-            except KeyboardInterrupt:
-                print("\nInterrupted by user.")
-            except Exception as e:
-                print(f"Polling error with message: {str(e)}")
-    else:
-        print("Monitor initialization has failed... aborting.")
+    if not success:
+        print("There was an error")
+
+    while success:
+        try:
+            token_needed = login.token_refresh_needed()
+            if not token_needed:
+                print("No need to update the token for now")
+            else:
+                print("Token must be updated")
+                update_token_in_monitor(abono_promedio)
+            sleep(30)
+        except KeyboardInterrupt:
+            print("\nInterrupted by user.")
+            success = False
+        except Exception as e:
+            print(f"Polling error with message: {str(e)}")
+            success = False
+
+    
 
 
 

@@ -101,6 +101,8 @@ class LoginClient:
                 raise RuntimeError(f"Authentication failed: {data.get('message', 'Unknown error')}")
             
             new_token = data['data']['token']
+            self._token_date = data['date']
+            self._token_expiry = data['time']
             return new_token
             
         except requests.exceptions.RequestException as e:
