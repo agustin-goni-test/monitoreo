@@ -140,6 +140,28 @@ class LoginClient:
         
         else:
             return True
+        
+    def set_token_from_env(self):
+        self._token = os.getenv("PRIVATE_SITE_TOKEN")
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        current_time = datetime.now().strftime("%H:%M:%S")
+        self._token_date = current_date
+        self._token_expiry = current_time
+
+    def get_token_from_env(self) -> str:
+         """Return the token from the environment variable.
+         Use current time and date as data for later comparison
+         
+         This is only useful for testing..."""
+
+         self._token = os.getenv("PRIVATE_SITE_TOKEN")
+         current_date = datetime.now().strftime("%Y-%m-%d")
+         current_time = datetime.now().strftime("%H:%M:%S")
+         self._token_date = current_date
+         self._token_expiry = current_time
+
+         return self._token
+        
 
     
     @staticmethod

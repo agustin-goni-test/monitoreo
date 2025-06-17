@@ -3,6 +3,7 @@ import json
 from dotenv import load_dotenv
 import os
 from typing import List, Optional, Dict, Union, Any
+from datetime import datetime
 
 load_dotenv()
 
@@ -39,6 +40,19 @@ class MonitorRequestConfig:
         if pretty:
             return json.dumps(self.to_dict(), indent=2)
         return json.dumps(self.to_dict())
+    
+    def update_request_date(self):
+        """Update the request date to use today's date."""
+        if self.requestBody:
+            try:
+                body_data = json.loads(self.requestBody)
+                today = datetime.now().strftime("%Y-%m-%d")
+                body_data["start_date"] = today
+                body_data["end_date"] = today
+                self.requestBody = json.dumps(body_data, indent=4)
+            except json.JSONDecodeError:
+                pass
+
 
 
 class MonitorScript:

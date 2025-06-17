@@ -14,6 +14,7 @@ from typing import List, Tuple
 import threading
 import signal
 import sys
+from monitor_handler import force_initialize_monitor, concurrent_manage_monitor
 
 _output_manager = OutputManager()
 _poller = Poller()
@@ -42,8 +43,6 @@ def main():
         Debugger.echo_configuration()
         poller.echo_configuration()
 
-
-
     
     ############### MAIN CONTROL FLOW #########################
 
@@ -71,15 +70,30 @@ def main():
     if config.flow_control.databases.query_enabled:
         get_historical_database_metrics()
 
+    
+    # HTTP synthetic monitor ID
+    abono_promedio = "HTTP_CHECK-5318DC3B9571D311"
+
+    # Initialize syntehtic monitor
+    success = force_initialize_monitor(abono_promedio)
+
+    # Implement thread management
     threads = []
 
     if config.flow_control.polling.last_trx_polling:
-        t1 = threading.Thread(target=wrap_polling(start_last_trx_polling), name="LastTrxPolling")
+        t1 = threading.Thread(target=wrap_polling(lambda: run_last_trx_polling(stop_event)), name="LastTrxPolling")
         threads.append(t1)
 
     if config.flow_control.polling.service_polling:
-        t2 = threading.Thread(target=wrap_polling(start_service_polling), name="ServicePolling")
+        t2 = threading.Thread(target=wrap_polling(lambda: start_service_polling(stop_event)), name="ServicePolling")
         threads.append(t2)
+
+    if success:
+        t3 = threading.Thread(
+            target=wrap_polling(lambda: concurrent_manage_monitor(abono_promedio, stop_event)),
+            name="SyntheticMonitor"
+        )
+        threads.append(t3)
 
     for t in threads:
         t.start()
@@ -122,9 +136,9 @@ def main():
 def wrap_polling(polling_function):
     def wrapped():
         try:
-            polling_function(stop_event)
+            polling_function()
         except Exception as e:
-            print(f"Error in thread for {polling_function.__nam__}: {str(e)}")
+            print(f"Error in thread for {polling_function.__name__}: {str(e)}")
         finally:
             stop_event.set()
     return wrapped
@@ -271,6 +285,19 @@ def get_historical_database_metrics():
         
         # Direct output to the selected channels
         output_manager.default_output(database.name, data_matrix, timeframe="DEFAULT")
+
+
+def run_last_trx_polling(stop_event):
+    error_count = 0
+    print("Starting las transaction polling...")
+    while not stop_event.is_set():
+        retry_polling = start_last_trx_polling(stop_event)
+        if not retry_polling:
+            print("Last transaction polling interrupted by user.")
+            break
+        print("Las transaction polling has restarted after error...")
+        error_count += 1
+    print(f"Number of errors and restarts in last transaction polling: {error_count}")
 
 
 def start_last_trx_polling(stop_event):

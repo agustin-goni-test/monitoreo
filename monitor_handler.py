@@ -7,12 +7,11 @@ from clients.login import get_login_client
 from time import sleep
 
 
-
 def main():
     print("Synthetic monitoring test")
 
     # client = get_dynatrace_client()
-    login = get_login_client()
+    # login = get_login_client()
 
     # abono_mercado_pago = "HTTP_CHECK-8BEE0BF63C2C4D4D"
     abono_promedio = "HTTP_CHECK-5318DC3B9571D311"
@@ -21,27 +20,29 @@ def main():
 
     print("OK")
 
-    success = True
+    manage_synthetic_monitor(abono_promedio)
+
+    # success = True
     # success = initialize_monitor(abono_promedio)
 
-    if not success:
-        print("There was an error")
+    # if not success:
+    #     print("There was an error")
 
-    while success:
-        try:
-            token_needed = login.token_refresh_needed()
-            if not token_needed:
-                print("No need to update the token for now")
-            else:
-                print("Token must be updated")
-                update_token_in_monitor(abono_promedio)
-            sleep(30)
-        except KeyboardInterrupt:
-            print("\nInterrupted by user.")
-            success = False
-        except Exception as e:
-            print(f"Polling error with message: {str(e)}")
-            success = False
+    # while success:
+    #     try:
+    #         token_needed = login.token_refresh_needed()
+    #         if not token_needed:
+    #             print("No need to update the token for now")
+    #         else:
+    #             print("Token must be updated")
+    #             update_token_in_monitor(abono_promedio)
+    #         sleep(30)
+    #     except KeyboardInterrupt:
+    #         print("\nInterrupted by user.")
+    #         success = False
+    #     except Exception as e:
+    #         print(f"Polling error with message: {str(e)}")
+    #         success = False
 
     
 
@@ -101,6 +102,75 @@ def main():
     # client.test_service_metrics(metric, service_name, service_id, "1m", "now-15m", "now", time_based=False)
 
 
+
+
+def concurrent_manage_monitor(monitor_id: str, stop_event):
+    while not stop_event.is_set():
+        try:
+            protected_manage_monitor(monitor_id)
+            sleep_with_interrupt(45, stop_event)
+        except KeyboardInterrupt:
+            print("\nInterrupted by user.")
+            break
+        except Exception as e:
+            print(f"Polling error with message: {str(e)}")
+            continue
+
+
+def protected_manage_monitor(monitor_id):
+    
+    login = get_login_client()
+
+    try:
+        token_needed = login.token_refresh_needed()
+        if not token_needed:
+            print(f"No need to update the monitor {monitor_id} for now.")
+        else:
+            print(f"Token for monitor {monitor_id} must be updated.")
+            update_token_in_monitor(monitor_id)
+    except Exception as e:
+        print(f"Polling error with message: {str(e)}")
+        
+
+
+def sleep_with_interrupt(seconds, stop_event):
+    for _ in range(int(seconds * 10)):  # check every 0.1s
+        if stop_event.is_set():
+            break
+        sleep(0.1)
+
+
+
+def manage_synthetic_monitor(monitor_id: str):
+    """This method allows to permanently manage the continuity of a monitor"""
+
+    # Get the login handler
+    login = get_login_client()
+
+    # Initialize the monitor (adding a new token and today's date)
+    # success = initialize_monitor(monitor_id)
+    success = True
+
+    if not success:
+        print("There was an error...")
+
+    while success:
+        try:
+            token_needed = login.token_refresh_needed()
+            if not token_needed:
+                print("No need to update the token for now")
+            else:
+                print("Token must be updated")
+                update_token_in_monitor(monitor_id)
+            sleep(30)
+        except KeyboardInterrupt:
+            print("\nInterrupted by user.")
+            success = False
+        except Exception as e:
+            print(f"Polling error with message: {str(e)}")
+            success = False
+
+
 def initialize_monitor(monitor_id: str) -> bool:
     
     # Get synthetic monitor client
@@ -120,6 +190,10 @@ def initialize_monitor(monitor_id: str) -> bool:
     # (regardless of what it had before)
     new_monitor = update_header_in_monitor(token, monitor)
 
+    # Update date as well, in case it's not today's
+    for request in new_monitor.script.requests:
+        request.update_request_date()
+
     # Make sure the monitor is enabled
     new_monitor.enabled = True
 
@@ -132,6 +206,46 @@ def initialize_monitor(monitor_id: str) -> bool:
         print(f"Failed to initialize monitor {monitor_id}")
         return False
     
+
+def force_initialize_monitor(monitor_id) -> str:
+    """The purpose of this method is to be able to initialize a monitor
+    with a specific token (the one found in the .env file).
+    
+    This is useful for testing, because the normal initialization method, when
+    starting from scratch, will get a new token. Since there is a max number
+    of token a user can have, getting a new token with each test can be costly."""
+
+    print(f"Force initializing monitor {monitor_id}...")
+
+    # Get synthetic monitor client
+    try:
+        synth_client = get_synth_monitor_client()
+    except Exception as e:
+        print(f"There was a error attempting to fetch the synthetic monitor client: {str(e)}")
+    
+    # Get login client
+    login = get_login_client()
+    
+    # Force to use the token from the environment variable
+    token = login.get_token_from_env()
+    print("Using token obtained from environment variable...")
+
+    # Get the parameters for the monitor
+    monitor = synth_client.get_monitor_parameters_by_id(monitor_id)
+
+    # Add the initilization token to the monitor's headers
+    # (regardless of what it had before)
+    new_monitor = update_header_in_monitor(token, monitor)
+    print("Token has been updated in monitor definition...")
+
+    # Update the monitor's parameters with the token
+    success = synth_client.update_monitor_parameters_by_id(monitor_id, new_monitor)
+    if success:
+        print(f"Monitor {monitor_id} has been initialized successfully")
+        return True
+    else:
+        print(f"Failed to initialize monitor {monitor_id}")
+        return False
 
     
 def sleep_monitor(monitor_id: str) -> bool:
@@ -192,7 +306,8 @@ def update_header_in_monitor(new_token: str, monitor: SyntheticMonitor) -> Synth
                 header['value'] = f"Bearer {new_token}"
                 break
 
-    return new_monitor 
+    return new_monitor
+
 
 
 if __name__ == "__main__":
