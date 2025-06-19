@@ -14,7 +14,7 @@ from typing import List, Tuple
 import threading
 import signal
 import sys
-from monitor_handler import force_initialize_monitor, concurrent_manage_monitor
+from monitor_handler import force_initialize_monitor, concurrent_manage_monitor, initialize_monitor
 
 _output_manager = OutputManager()
 _poller = Poller()
@@ -70,12 +70,25 @@ def main():
     if config.flow_control.databases.query_enabled:
         get_historical_database_metrics()
 
+    if (
+        config.flow_control.services.query_enabled or
+        config.flow_control.databases.query_enabled
+    ):
+        print("\n\nAll data extracted according to configuration definitions...")
+
+    input("\nPress a key to start real time polling...")
+
     
     # HTTP synthetic monitor ID
     abono_promedio = "HTTP_CHECK-5318DC3B9571D311"
 
     # Initialize syntehtic monitor
-    success = force_initialize_monitor(abono_promedio)
+    # In a normal flow, we do the normal initilization
+    success = initialize_monitor(abono_promedio)
+
+    # In a test flow, we force initialize (using a set token
+    # instead of obtaining a new one).
+    # success = force_initialize_monitor(abono_promedio)
 
     # Implement thread management
     threads = []
@@ -398,6 +411,8 @@ def start_service_polling(stop_event):
 
 
 def sleep_with_interrupt(seconds, stop_event):
+    """This method allows to sleep a thread conditionally. This helps
+    to interrupt right away when the stop signal comes."""
     for _ in range(int(seconds * 10)):  # check every 0.1s
         if stop_event.is_set():
             break

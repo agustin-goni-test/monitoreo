@@ -4,7 +4,7 @@ flow_control:
   services:
     query_enabled: false
     timeframes:
-      default: false
+      default: true
       day: false
       week: false
       month: false
@@ -63,7 +63,14 @@ services:
       last_trx_response_time: "calc:service.responsetime_trxmediospago_lastmsgtrx"
       today_request_count: "calc:service.requestcount_trxmediospago_today"
 
-
+  # - name: "RegisterController"
+  #   id: "SERVICE-90AE04D784DA6E1E"
+  #   threshold_ms: 3000
+  #   metrics:
+  #     response_time: "builtin:service.response.time"
+  #     request_count: "builtin:service.requestCount.total"
+  #     success_count: "builtin:service.errors.server.successCount"
+  #     failure_rate: "builtin:service.errors.total.rate"
 
   - name: "AbonosController"
     id: "SERVICE-123E236BA4855F4A"
@@ -80,6 +87,7 @@ services:
     calculated_metrics:
       by_range_response_time: "calc:service.responsetime_abonos_byrange"
       today_response_time: "calc:service.responsetime_abonos_abonosdehoy"
+    
 
       
 

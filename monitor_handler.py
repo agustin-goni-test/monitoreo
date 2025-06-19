@@ -105,10 +105,21 @@ def main():
 
 
 def concurrent_manage_monitor(monitor_id: str, stop_event):
+    """This method is used to handle concurrency in updating the monitor.
+    
+    This method is initiated as a separate thread. The stop event signals
+    a thread stop. Inside, it sends a call to protected_manage_monitor()
+    and sleeps the thread for a set number of seconds (or the interruption)"""
+
+    # Repeat as long as there is no stop event
     while not stop_event.is_set():
         try:
+            # Call inside method that has the logic
             protected_manage_monitor(monitor_id)
+
+            # Sleep the process for a set time (unless interrupted)
             sleep_with_interrupt(45, stop_event)
+
         except KeyboardInterrupt:
             print("\nInterrupted by user.")
             break
@@ -118,31 +129,47 @@ def concurrent_manage_monitor(monitor_id: str, stop_event):
 
 
 def protected_manage_monitor(monitor_id):
+    """This method is the inside call for the concurrent implementation
+    of the synthetic monitor update.
     
+    It doesn't directly manage an interruption, as the "parent" method,
+    concurrent_manage_monitor(), is the one that handles the thread itself."""
+    
+    # Get login client
     login = get_login_client()
 
     try:
+        # Find if we need to refresh the token (based on expiration time)
         token_needed = login.token_refresh_needed()
+
+        # If we don't need to refresh the token, do nothing
         if not token_needed:
             print(f"No need to update the monitor {monitor_id} for now.")
+
+        # If we need to update the token, call the method that updates it.
         else:
             print(f"Token for monitor {monitor_id} must be updated.")
             update_token_in_monitor(monitor_id)
+
     except Exception as e:
         print(f"Polling error with message: {str(e)}")
         
 
 
 def sleep_with_interrupt(seconds, stop_event):
+    """This method allows to sleep a thread conditionally. This helps
+    to interrupt right away when the stop signal comes."""
     for _ in range(int(seconds * 10)):  # check every 0.1s
         if stop_event.is_set():
             break
         sleep(0.1)
 
 
-
 def manage_synthetic_monitor(monitor_id: str):
-    """This method allows to permanently manage the continuity of a monitor"""
+    """This method allows to permanently manage the continuity of a monitor.
+    
+    This is the non-concurrent version. We can use it in isolation only.
+    In case we need concurrency, we must use concurrent_manage_monitor"""
 
     # Get the login handler
     login = get_login_client()
@@ -154,15 +181,24 @@ def manage_synthetic_monitor(monitor_id: str):
     if not success:
         print("There was an error...")
 
+    # This parameter is here in case we need initialization
     while success:
         try:
+            # Determine if we need a new token (based on expiration time)
             token_needed = login.token_refresh_needed()
+
+            # If we don't need it, do nothing
             if not token_needed:
                 print("No need to update the token for now")
+
+            # If we need a new token, call the method that updates it
             else:
                 print("Token must be updated")
                 update_token_in_monitor(monitor_id)
+            
+            # Wait a set number of seconds
             sleep(30)
+
         except KeyboardInterrupt:
             print("\nInterrupted by user.")
             success = False
@@ -172,7 +208,10 @@ def manage_synthetic_monitor(monitor_id: str):
 
 
 def initialize_monitor(monitor_id: str) -> bool:
+    """This method initializes a monitor by ID.
     
+    It assumes there is no valid token, and therefores starts by authenticating."""
+
     # Get synthetic monitor client
     try:
         synth_client = get_synth_monitor_client()
@@ -249,6 +288,10 @@ def force_initialize_monitor(monitor_id) -> str:
 
     
 def sleep_monitor(monitor_id: str) -> bool:
+    """This method disables a monitor so it won't continue executing. We use
+    it to sleep the monitor when updatind the token is not possible in practice.
+    This prevents the monitor from failing constantly when the token expires."""
+    
     # Get synthetic monitor client
     try:
         synth_client = get_synth_monitor_client()
@@ -272,6 +315,10 @@ def sleep_monitor(monitor_id: str) -> bool:
 
 
 def update_token_in_monitor(monitor_id: str):
+    """This method updates the token in the monitor by using the Dyantrace API.
+    
+    Using the monitor ID, it GETs the monitor parameters, modifies the header for
+    authorization, and PUTs the new parameters."""
     
     try:
         synth_client = get_synth_monitor_client()
@@ -297,6 +344,8 @@ def update_token_in_monitor(monitor_id: str):
     
 
 def update_header_in_monitor(new_token: str, monitor: SyntheticMonitor) -> SyntheticMonitor:
+    """This method uses a JSON representation of the parameters of the monitor and
+    updates the authorizarion header to include a new token"""
     new_monitor = monitor
 
     for request in new_monitor.script.requests:
