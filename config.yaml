@@ -1,43 +1,43 @@
-debug: false
+debug: false # Show debug info while running
 
 flow_control:
   services:
-    query_enabled: false
-    timeframes:
+    query_enabled: true # Will query services
+    timeframes: # Adding timeframes as stated. Default can override the rest
       default: false
       day: false
       week: false
       month: false
       year: false
-    include_calculated_metrics: false
+    include_calculated_metrics: true # Will query calculated metrics if defined
 
   databases:
-    query_enabled: false
+    query_enabled: true # Will query databases
 
   polling:
-    last_trx_polling: true
-    service_polling: true
-    monitor_update_polling: true
+    last_trx_polling: false # Poll for last transaction lag
+    service_polling: false # Poll for service metrics according to this configuration
+    monitor_update_polling: false # Manage token update for HTTP synthetic monitor
 
 
-output_format:
+output_format: # Formats for the output
   Screen: true
   CSV: true
   Excel: true
   All: false
   Default: Screen
 
-timeframes:
+timeframes: # Default timeframes; these can be changed
   services:
-    from_time: "now-7d"
+    from_time: "now-1d"
     to_time: "now"
-    resolution: "1m"
+    resolution: "5m"
   databases:
-    from_time: "now-7d"
+    from_time: "now-1d"
     to_time: "now"
-    resolution: "1m"
+    resolution: "5m"
 
-services:
+services: # List of services and their metrics
   # - name: "ComercioTransaccionesController"
   #   id: "SERVICE-FD9343224D905203"
   #   threshold_ms: 3000
@@ -91,8 +91,7 @@ services:
     
 
       
-
-databases:
+databases: # List of databases and their metrics
   - name: "mc_tlog_historia"
     id: "SERVICE-0604902B4FAD42B6"
     metrics:
@@ -109,7 +108,7 @@ databases:
       success_rate: "builtin:service.dbconnections.successRate"
       failed_connections_count: "builtin:service.dbconnections.failure"
 
-polling:
+polling: # Polling configuration
   resolution: "1m"
   from_time: "now-10m"
   to_time: "now"

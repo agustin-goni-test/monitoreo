@@ -53,6 +53,7 @@ def main():
         config.flow_control.services.include_calculated_metrics and
         config.flow_control.services.timeframes.default
     ):
+        print("Going through default path for services...")
         get_all_metrics_default_period()
 
     else:
@@ -60,14 +61,17 @@ def main():
         if config.flow_control.services.query_enabled:
             
             # Get historical metrics. Use timeframes in configuration
+            print("Getting metrics for services based on configuration parameters...")
             get_historical_service_metrics()
 
             # If calculated metrics are included
             # They only include the default period
             if config.flow_control.services.include_calculated_metrics:
+                print("Including calculated metrics...")
                 get_calculated_service_metrics()
     
     if config.flow_control.databases.query_enabled:
+        print("Getting database metrics...")
         get_historical_database_metrics()
 
     if (
@@ -76,7 +80,14 @@ def main():
     ):
         print("\n\nAll data extracted according to configuration definitions...")
 
-    input("\nPress a key to start real time polling...")
+    if(
+        config.flow_control.polling.last_trx_polling or
+        config.flow_control.polling.service_polling or
+        config.flow_control.polling.monitor_update_polling
+    ):
+        input("\nPress a key to start real time polling...")
+    else:
+        print("No real time polling requested... no threads will be launched.")
 
     
     # HTTP synthetic monitor ID
@@ -92,12 +103,16 @@ def main():
         else:
             success = force_initialize_monitor(abono_promedio)
 
+    if (config.flow_control.polling.last_trx_polling or
+        config.flow_control.polling.service_polling or
+        config.flow_control.polling.monitor_update_polling 
+    ):
     # Call method that starts all separate polling threads
-    start_all_polling_threads(
-        config.flow_control.polling.last_trx_polling,
-        config.flow_control.polling.service_polling,
-        config.flow_control.polling.monitor_update_polling
-    )
+        start_all_polling_threads(
+            config.flow_control.polling.last_trx_polling,
+            config.flow_control.polling.service_polling,
+            config.flow_control.polling.monitor_update_polling
+        )
 
     # In a test flow, we force initialize (using a set token
     # instead of obtaining a new one).
@@ -124,11 +139,15 @@ def main():
     #     # Service polling, including calculated metrics
     #     start_service_polling()
 
-    print("THE END")
+    print("\n\nExecution has ended!\n")
 
 
 def start_all_polling_threads(last_trx: bool, service: bool, token_validaty: bool):
-    
+    """This method runs all real time polling tasks in separate threads"""
+
+    # This is the monitor under watch. It's currently only one.
+    # If more monitors are needed the call to the method (and the method itself
+    # has to change)
     abono_promedio = "HTTP_CHECK-5318DC3B9571D311"
     
     # Implement thread management
@@ -175,6 +194,7 @@ def start_all_polling_threads(last_trx: bool, service: bool, token_validaty: boo
 
 
 def wrap_polling(polling_function):
+    """This method is used as a wrapper for every separate thread"""
     def wrapped():
         try:
             polling_function()

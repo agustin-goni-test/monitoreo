@@ -189,6 +189,9 @@ class SynthMonitorClient:
         self.monitor_admin_token = monitor_admin_token
 
     def get_monitor_parameters_by_id(self, monitor_id: str) -> Optional[SyntheticMonitor]:
+        """Uses Dynatrace API to GET monitor parameters from monitor ID.
+        
+        Endpoint: GET /synthetic/monitors/{monitorId}"""
         # Using synthetic monitor endpoint.
         # It belong the the API v1
         endpoint_url = f"{self.environment_url_v1}{os.getenv("MONITOR_PARAMETERS_ENDPOINT")}"
@@ -219,6 +222,10 @@ class SynthMonitorClient:
             monitor: SyntheticMonitor,
             etag: Optional[str] = None
             ) -> bool:
+        """Uses Dynatrace API to modify mopnitor parameters from monitor ID.
+        
+        Endpoint: PUT /synthetic/monitors/{monitorId}"""    
+    
         # Using synthetic monitor endpoint.
         # It belong the the API v1
         endpoint_url = f"{self.environment_url_v1}{os.getenv("MONITOR_PARAMETERS_ENDPOINT")}"
@@ -262,9 +269,10 @@ class SynthMonitorClient:
             return False
 
 
-# This is the client
+# This is the client - Singleton implementation
 _synth_monitor_client_instance: Optional[SynthMonitorClient] = None
 
+# Get client instance
 def get_synth_monitor_client():
     global _synth_monitor_client_instance
 

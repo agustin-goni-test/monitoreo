@@ -113,10 +113,13 @@ def concurrent_manage_monitor(monitor_id: str, stop_event):
     a thread stop. Inside, it sends a call to protected_manage_monitor()
     and sleeps the thread for a set number of seconds (or the interruption)"""
 
+    # Currently this method takes 1 monitor id. It could be modified to take several
+
     # Repeat as long as there is no stop event
     while not stop_event.is_set():
         try:
             # Call inside method that has the logic
+            # This call could be looped for seveal monitors
             protected_manage_monitor(monitor_id)
 
             # Sleep the process for a set time (unless interrupted)

@@ -66,20 +66,27 @@ class OutputManager:
                 writer.write_default(service_name, data_matrix)
             
     def last_trx_poll_output(self, polling_data: TransactionPolling):
-        """Generic implementation for all writers"""
+        """Used to generate the output for last transaction polling.   
+        Generic implementation for all writers."""
         for writer in self.writers:
             writer.write_last_trx_poll(polling_data)
         
     def service_poll_output(self, service_name, stats_pairs: List[Tuple[str, PollingStats]]):
+        """Used for managing the output of service polling.
+        Generic implementation for all writers."""
         for writer in self.writers:
             writer.write_polling_stats(service_name, stats_pairs)
 
     
     def finalize_last_trx_poll_files(self):
+        """Used to rename and close the file, when needed (depending
+        on writer type)"""
         for writer in self.writers:
             writer.finalize_last_trx_poll_file()
 
     def finalize_polling_file(self, service_name):
+        """Used to rename and close the file, when needed (depending
+        on writer type)"""
         for writer in self.writers:
             writer.finalize_polling_file(service_name)
 
