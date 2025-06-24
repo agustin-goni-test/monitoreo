@@ -4,7 +4,7 @@ flow_control:
   services:
     query_enabled: false
     timeframes:
-      default: true
+      default: false
       day: false
       week: false
       month: false
@@ -17,6 +17,7 @@ flow_control:
   polling:
     last_trx_polling: true
     service_polling: true
+    monitor_update_polling: true
 
 
 output_format:
@@ -37,31 +38,31 @@ timeframes:
     resolution: "1m"
 
 services:
-  - name: "ComercioTransaccionesController"
-    id: "SERVICE-FD9343224D905203"
-    threshold_ms: 3000
-    metrics:
-      response_time: "builtin:service.response.time"
-      client_time: "builtin:service.response.client"
-      request_count: "builtin:service.requestCount.total"
-      success_count: "builtin:service.errors.server.successCount"
-      failure_count: "builtin:service.errors.server.count"
-      failure_rate: "builtin:service.errors.total.rate"
-      server_failure_rate: "builtin:service.errors.server.rate"
-      server_success_rate: "builtin:service.successes.server.rate"
-    calculated_metrics:
-      filter_details_response_time: "calc:service.responsetime_trxmediospago_filterdetails"
-      filter_details_request_count: "calc:service.requestcount_trxmediospago_filterdetails"
-      filter_details_success_count: "calc:service.succesfulrequestcount_trxmediospago"
-      filter_details_failure_count: "calc:service.failedrequestcount_trxmediospago_filterdetails"
-      filter_sales_response_time: "calc:service.responsetime_trxmediospago_filtersales"
-      filter_sales_request_count: "calc:service.requestcount_trxmediospago_newfiltersales"
-      filter_sales_success-count: "calc:service.successfulrequests_trxmediospago_filtersales"
-      filter_sales_failure_count: "calc:service.failedrequestcount_trxmediospago_filtersales"
-      download_csv_response_time: "calc:service.responsetime_trxmediospago_downloadcsv"
-      today_response_time: "calc:service.responsetime_trxmediospago_today"
-      last_trx_response_time: "calc:service.responsetime_trxmediospago_lastmsgtrx"
-      today_request_count: "calc:service.requestcount_trxmediospago_today"
+  # - name: "ComercioTransaccionesController"
+  #   id: "SERVICE-FD9343224D905203"
+  #   threshold_ms: 3000
+  #   metrics:
+  #     response_time: "builtin:service.response.time"
+  #     client_time: "builtin:service.response.client"
+  #     request_count: "builtin:service.requestCount.total"
+  #     success_count: "builtin:service.errors.server.successCount"
+  #     failure_count: "builtin:service.errors.server.count"
+  #     failure_rate: "builtin:service.errors.total.rate"
+  #     server_failure_rate: "builtin:service.errors.server.rate"
+  #     server_success_rate: "builtin:service.successes.server.rate"
+  #   calculated_metrics:
+  #     filter_details_response_time: "calc:service.responsetime_trxmediospago_filterdetails"
+  #     filter_details_request_count: "calc:service.requestcount_trxmediospago_filterdetails"
+  #     filter_details_success_count: "calc:service.succesfulrequestcount_trxmediospago"
+  #     filter_details_failure_count: "calc:service.failedrequestcount_trxmediospago_filterdetails"
+  #     filter_sales_response_time: "calc:service.responsetime_trxmediospago_filtersales"
+  #     filter_sales_request_count: "calc:service.requestcount_trxmediospago_newfiltersales"
+  #     filter_sales_success-count: "calc:service.successfulrequests_trxmediospago_filtersales"
+  #     filter_sales_failure_count: "calc:service.failedrequestcount_trxmediospago_filtersales"
+  #     download_csv_response_time: "calc:service.responsetime_trxmediospago_downloadcsv"
+  #     today_response_time: "calc:service.responsetime_trxmediospago_today"
+  #     last_trx_response_time: "calc:service.responsetime_trxmediospago_lastmsgtrx"
+  #     today_request_count: "calc:service.requestcount_trxmediospago_today"
 
   # - name: "RegisterController"
   #   id: "SERVICE-90AE04D784DA6E1E"
@@ -94,6 +95,14 @@ services:
 databases:
   - name: "mc_tlog_historia"
     id: "SERVICE-0604902B4FAD42B6"
+    metrics:
+      total_connections_count: "builtin:service.dbconnections.total"
+      failure_rate: "builtin:service.dbconnections.failureRate"
+      success_rate: "builtin:service.dbconnections.successRate"
+      failed_connections_count: "builtin:service.dbconnections.failure"
+
+  - name: "contable"
+    id: "SERVICE-E527F26C73AAF9FC"
     metrics:
       total_connections_count: "builtin:service.dbconnections.total"
       failure_rate: "builtin:service.dbconnections.failureRate"

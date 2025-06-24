@@ -10,7 +10,7 @@ from time import sleep
 def main():
     print("Synthetic monitoring test")
 
-    # client = get_dynatrace_client()
+    client = get_dynatrace_client()
     # login = get_login_client()
 
     # abono_mercado_pago = "HTTP_CHECK-8BEE0BF63C2C4D4D"
@@ -20,7 +20,9 @@ def main():
 
     print("OK")
 
-    manage_synthetic_monitor(abono_promedio)
+    # sleep_monitor(abono_promedio)
+
+    # manage_synthetic_monitor(abono_promedio)
 
     # success = True
     # success = initialize_monitor(abono_promedio)
@@ -84,8 +86,8 @@ def main():
     
     print("\nTHE END")
 
-    # service_name = "KLAP CL"
-    # service_id = "SYNTHETIC_TEST-6D53466B35B2E9F5"
+    service_name = "KLAP-CL"
+    service_id = "SYNTHETIC_TEST-6D53466B35B2E9F5"
 
     # metric = "builtin:synthetic.browser.totalDuration"
     # metric = "builtin:synthetic.browser.availability"
@@ -99,7 +101,7 @@ def main():
     # metric = "calc:synthetic.browser.klapclflujo.visuallycomplete_portalcomercio"
     metric = "calc:synthetic.browser.klapclflujo.visuallycomplete_cerrarsesion"
      
-    # client.test_service_metrics(metric, service_name, service_id, "1m", "now-15m", "now", time_based=False)
+    client.test_service_metrics(metric, service_name, service_id, "15m", "now-7d", "now", time_based=False)
 
 
 
@@ -118,7 +120,7 @@ def concurrent_manage_monitor(monitor_id: str, stop_event):
             protected_manage_monitor(monitor_id)
 
             # Sleep the process for a set time (unless interrupted)
-            sleep_with_interrupt(45, stop_event)
+            sleep_with_interrupt(300, stop_event)
 
         except KeyboardInterrupt:
             print("\nInterrupted by user.")

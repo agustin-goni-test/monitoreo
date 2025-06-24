@@ -84,43 +84,25 @@ def main():
 
     # Initialize syntehtic monitor
     # In a normal flow, we do the normal initilization
-    success = initialize_monitor(abono_promedio)
+    # In a test flow, we force initialize (using a set token
+    # instead of obtaining a new one).
+    if config.flow_control.polling.monitor_update_polling:
+        if not config.debug:
+            success = initialize_monitor(abono_promedio)
+        else:
+            success = force_initialize_monitor(abono_promedio)
+
+    # Call method that starts all separate polling threads
+    start_all_polling_threads(
+        config.flow_control.polling.last_trx_polling,
+        config.flow_control.polling.service_polling,
+        config.flow_control.polling.monitor_update_polling
+    )
 
     # In a test flow, we force initialize (using a set token
     # instead of obtaining a new one).
     # success = force_initialize_monitor(abono_promedio)
 
-    # Implement thread management
-    threads = []
-
-    if config.flow_control.polling.last_trx_polling:
-        t1 = threading.Thread(target=wrap_polling(lambda: run_last_trx_polling(stop_event)), name="LastTrxPolling")
-        threads.append(t1)
-
-    if config.flow_control.polling.service_polling:
-        t2 = threading.Thread(target=wrap_polling(lambda: start_service_polling(stop_event)), name="ServicePolling")
-        threads.append(t2)
-
-    if success:
-        t3 = threading.Thread(
-            target=wrap_polling(lambda: concurrent_manage_monitor(abono_promedio, stop_event)),
-            name="SyntheticMonitor"
-        )
-        threads.append(t3)
-
-    for t in threads:
-        t.start()
-
-    try:
-        while not stop_event.is_set():
-            for t in threads:
-                t.join(timeout=1)
-    except KeyboardInterrupt:
-        print(f"\nInterrupted by user, stopping all polling...")
-        stop_event.set()
-        for t in threads:
-            t.join()
-        sys.exit(0)
     
     # if config.flow_control.polling.last_trx_polling:
     #     # Activate last transaction polling
@@ -143,6 +125,52 @@ def main():
     #     start_service_polling()
 
     print("THE END")
+
+
+def start_all_polling_threads(last_trx: bool, service: bool, token_validaty: bool):
+    
+    abono_promedio = "HTTP_CHECK-5318DC3B9571D311"
+    
+    # Implement thread management
+    threads = []
+
+    # Add threads
+    if last_trx:
+        t1 = threading.Thread(target=wrap_polling(lambda: run_last_trx_polling(stop_event)), name="LastTrxPolling")
+        print("Adding process LastTrxPolling to list of threads...")
+        threads.append(t1)
+
+    if service:
+        t2 = threading.Thread(target=wrap_polling(lambda: start_service_polling(stop_event)), name="ServicePolling")
+        print("Adding process ServicePolling to list of threads...")
+        threads.append(t2)
+
+    if token_validaty:
+        t3 = threading.Thread(
+            target=wrap_polling(lambda: concurrent_manage_monitor(abono_promedio, stop_event)),
+            name="SyntheticMonitor"
+        )
+        print("Adding process SyntheticMonitor to list of threads...")
+        threads.append(t3)
+
+    # Start threads
+    for t in threads:
+        print(f"Starting process {t.name}")
+        t.start()
+        print(f"Process {t.name} has started")
+
+    # Repeat while there is no stop signal
+    # Use exception for user interrupt
+    try:
+        while not stop_event.is_set():
+            for t in threads:
+                t.join(timeout=1)
+    except KeyboardInterrupt:
+        print(f"\nInterrupted by user, stopping all polling...")
+        stop_event.set()
+        for t in threads:
+            t.join()
+        sys.exit(0)
 
 
 
@@ -302,7 +330,6 @@ def get_historical_database_metrics():
 
 def run_last_trx_polling(stop_event):
     error_count = 0
-    print("Starting las transaction polling...")
     while not stop_event.is_set():
         retry_polling = start_last_trx_polling(stop_event)
         if not retry_polling:

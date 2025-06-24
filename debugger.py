@@ -69,6 +69,7 @@ class Debugger:
         print("  Polling:")
         print(f"    Last Transaction Polling: {config.flow_control.polling.last_trx_polling}")
         print(f"    Service Polling: {config.flow_control.polling.service_polling}")
+        print(f"    Monitor Update Polling: {config.flow_control.polling.monitor_update_polling}")
 
     @staticmethod
     def echo_polling_metrics(polling_config: Dict, metrics: List['PollingMetric']):

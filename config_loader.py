@@ -23,6 +23,7 @@ class DatabasesFlowControlConfig(BaseModel):
 class PollingFlowControlConfig(BaseModel):
     last_trx_polling: bool
     service_polling: bool
+    monitor_update_polling: bool
 
 class FlowControlConfig(BaseModel):
     services: ServicesFlowControlConfig
