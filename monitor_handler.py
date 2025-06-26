@@ -98,10 +98,11 @@ def main():
     # Calculated metric
     # metric = "calc:synthetic.browser.klapclflujo.visuallycomplete"
     # metric = "calc:synthetic.browser.klapclflujo.visuallycomplete_cargarklap"
-    # metric = "calc:synthetic.browser.klapclflujo.visuallycomplete_portalcomercio"
-    metric = "calc:synthetic.browser.klapclflujo.visuallycomplete_cerrarsesion"
+    metric = "calc:synthetic.browser.klapclflujo.visuallycomplete_portalcomercio"
+    # metric = "calc:synthetic.browser.klapclflujo.visuallycomplete_cerrarsesion"
      
     client.test_service_metrics(metric, service_name, service_id, "15m", "now-7d", "now", time_based=False)
+    
 
 
 
@@ -126,10 +127,10 @@ def concurrent_manage_monitor(monitor_id: str, stop_event):
             sleep_with_interrupt(300, stop_event)
 
         except KeyboardInterrupt:
-            print("\nInterrupted by user.")
+            print("\nInterrupted by use at monitor management.")
             break
         except Exception as e:
-            print(f"Polling error with message: {str(e)}")
+            print(f"Polling error at mmonitor management with message: {str(e)}")
             continue
 
 

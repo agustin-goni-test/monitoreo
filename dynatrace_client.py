@@ -322,6 +322,18 @@ class DynatraceClient:
 
         print(f"Raw data: {data}")
 
+
+
+        # Remove later. This is only here to test the output
+        import csv
+        import os
+        from datetime import datetime
+        
+        os.makedirs("output_files", exist_ok=True)
+        csv_data = []  # Store data for CSV
+
+
+
         # Assuming your JSON is stored in a variable called 'data'
         for result in data.get('result', []):
             metric_id = result.get('metricId')
@@ -343,6 +355,21 @@ class DynatraceClient:
                     else:
                         readable_time = datetime.fromtimestamp(ts / 1000.0)
                         print(f"Timestamp: {readable_time} | Value: None")
+                    
+                    # Collect data for CSV
+                    value_in_seconds = val / 1000 if val is not None else None
+                    csv_data.append([readable_time, value_in_seconds])
+
+            
+            # Write to CSV file
+            with open('output_files/BrowserMonitorMetric.csv', 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(['Timestamp', 'Value'])
+                writer.writerows(csv_data)
+
+
+
+
 
 
 

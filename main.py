@@ -387,10 +387,10 @@ def start_last_trx_polling(stop_event):
             sleep_with_interrupt(remaining_time, stop_event)           
 
     except KeyboardInterrupt:
-        print("\nInterrupted by user.")
+        print("\nInterrupted by user at last transaction polling.")
         return False
     except Exception as e:
-        print(f"Polling error with message: {str(e)}")
+        print(f"Polling last transaction error with message: {str(e)}")
         return True
     finally:
         output_manager.finalize_last_trx_poll_files()
@@ -449,9 +449,9 @@ def start_service_polling(stop_event):
             sleep_with_interrupt(30, stop_event)
 
     except KeyboardInterrupt:
-        print("\nInterrupted by user.")
+        print("\nInterrupted by user at service polling.")
     except Exception as e:
-        print(f"Polling error with message: {str(e)}")
+        print(f"Service polling error with message: {str(e)}")
     finally:
         for service_name, _ in metrics_by_service.items():
             output_manager.finalize_polling_file(service_name)

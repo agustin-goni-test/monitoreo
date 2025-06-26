@@ -2,22 +2,22 @@ debug: false # Show debug info while running
 
 flow_control:
   services:
-    query_enabled: true # Will query services
+    query_enabled: false # Will query services
     timeframes: # Adding timeframes as stated. Default can override the rest
       default: false
       day: false
       week: false
       month: false
       year: false
-    include_calculated_metrics: true # Will query calculated metrics if defined
+    include_calculated_metrics: false # Will query calculated metrics if defined
 
   databases:
-    query_enabled: true # Will query databases
+    query_enabled: false # Will query databases
 
   polling:
-    last_trx_polling: false # Poll for last transaction lag
-    service_polling: false # Poll for service metrics according to this configuration
-    monitor_update_polling: false # Manage token update for HTTP synthetic monitor
+    last_trx_polling: true # Poll for last transaction lag
+    service_polling: true # Poll for service metrics according to this configuration
+    monitor_update_polling: true # Manage token update for HTTP synthetic monitor
 
 
 output_format: # Formats for the output
