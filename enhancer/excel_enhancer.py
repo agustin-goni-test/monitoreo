@@ -13,7 +13,7 @@ class ExcelEnhancer:
         """Generate and set the output file name for the enhanced Excel file inside an 'output' folder."""
         base_name = os.path.basename(self.original_file_name)
         name, ext = os.path.splitext(base_name)
-        output_dir = os.path.join(os.path.dirname(self.original_file_name), "output")
+        output_dir = os.path.join(os.path.dirname(self.original_file_name), "enhanced")
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         self.enhanced_file_name = os.path.join(output_dir, f"{name}_ENH{ext}")
@@ -72,7 +72,7 @@ def main():
     print(os.getcwd())
 
     # Create ExcelEnhancer instance
-    enhancer = ExcelEnhancer("enhancer/ComercioTransaccionesController_CALC.xlsx")
+    enhancer = ExcelEnhancer("output_files/ComercioTransaccionesController_CALC.xlsx")
 
     # Add context columns to the Excel file
     try:
