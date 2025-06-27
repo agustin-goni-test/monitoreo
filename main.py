@@ -160,7 +160,7 @@ def start_all_polling_threads(last_trx: bool, service: bool, token_validaty: boo
         threads.append(t1)
 
     if service:
-        t2 = threading.Thread(target=wrap_polling(lambda: start_service_polling(stop_event)), name="ServicePolling")
+        t2 = threading.Thread(target=wrap_polling(lambda: run_service_polling(stop_event)), name="ServicePolling")
         print("Adding process ServicePolling to list of threads...")
         threads.append(t2)
 
@@ -200,8 +200,8 @@ def wrap_polling(polling_function):
             polling_function()
         except Exception as e:
             print(f"Error in thread for {polling_function.__name__}: {str(e)}")
-        finally:
-            stop_event.set()
+        # finally:
+        #     stop_event.set()
     return wrapped
 
 
@@ -307,7 +307,7 @@ def get_all_metrics_default_period():
         print(f"Querying service {service.name}")
 
         # Get raw data for the service metrics
-        data_matrix = client.read_all_database_metrics_default(service)
+        data_matrix = client.read_all_service_metrics_default(service)
         
         # Add compliance checks for time-related metrics
         complete_matrix = add_time_threshold_columns(data_matrix, service)
@@ -396,6 +396,23 @@ def start_last_trx_polling(stop_event):
         output_manager.finalize_last_trx_poll_files()
         
 
+def run_service_polling(stop_event):
+    """This method runs the service polling in a separate thread.
+    It will poll all the services and their metrics, including calculated ones.
+    Implements a retry mechanism in case of errors."""
+
+    error_count = 0
+    while not stop_event.is_set():
+        retry_polling = start_service_polling(stop_event)
+        if not retry_polling:
+            print("Service polling interrupted by user.")
+            break
+        print("Service polling has restarted after error...")
+        error_count += 1
+    print(f"Number of errors and restarts in service polling: {error_count}")   
+
+    
+
 
 def start_service_polling(stop_event):
 
@@ -450,11 +467,14 @@ def start_service_polling(stop_event):
 
     except KeyboardInterrupt:
         print("\nInterrupted by user at service polling.")
+        return False
     except Exception as e:
         print(f"Service polling error with message: {str(e)}")
+        return True
     finally:
         for service_name, _ in metrics_by_service.items():
             output_manager.finalize_polling_file(service_name)
+    
 
 
 def sleep_with_interrupt(seconds, stop_event):
