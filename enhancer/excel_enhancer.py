@@ -1,3 +1,5 @@
+import openpyxl.styles
+import openpyxl.utils
 import pandas as pd
 from datetime import datetime
 import os
@@ -183,6 +185,13 @@ class ExcelEnhancer:
 
 
     def insert_count_pivot(self):
+        """Insert a pivot table based on the count context columns."""
+        self.insert_count_pivot_by_column("Date")
+        self.insert_count_pivot_by_column("Hour")
+        self.insert_count_pivot_by_column("Weekday")
+
+
+    def insert_count_pivot_by_column(self, time_column="Date"):
         if self.enhanced_file_name is None:
             raise ValueError("Enhanced file name is not set. Call add_context_columns() first.")
         
@@ -194,27 +203,84 @@ class ExcelEnhancer:
         except Exception as e:
             raise Exception(f"An error occurred while reading the file: {str(e)}")
         
+        # Chech the required columns exist in the Excel file
+        required_columns = ['Date', time_column]
+        missing = [col for col in required_columns if col not in df.columns]
+        if missing:
+            raise ValueError(f"The enhanced file is missing required columns: {', '.join(missing)}")
+        
         # Create result data frame to include all colums
-        result_df = df[['Date']].drop_duplicates().reset_index(drop=True)
+        result_df = pd.DataFrame({time_column: sorted(df[time_column].unique())})
 
         for col in df.columns:
             if "Count" in col or "Total" in col:
 
-                # Maintain the original column name for clarity, no need for changes   
+                # Maintain the original column name for clarity, no need for changes
 
-                # Summarize by date using the sum of the count column
-                dimension_df = df.groupby("Date", as_index=False)[col].sum()
+                # Separate different cases: time_column is "Date", or something else
+                if time_column == "Date":
+                    dimension_df = df.groupby("Date", as_index=False)[col].sum()
+                else:
+                    # Two steps to summarize: step 1 - Sum by Date and time_column ("Hour", "Weekday", etc.)
+                    daily_totals_df = df.groupby(["Date", time_column], as_index=False)[col].sum()
+
+                    # Step 2 - Average across dates for each time_column
+                    dimension_df = daily_totals_df.groupby(time_column, as_index=False)[col].mean()
+
+                # Convert to int (as these are counts)
+                dimension_df[col] = dimension_df[col].astype(int)
 
                 # Merge with result data frame
                 result_df = result_df.merge(
                     dimension_df,
-                    on="Date",
+                    on=time_column,
                     how="left"
                 )
+        
+        # Define the name for the new sheet according to situation
+        sheet_name = 'Count Pivot' if time_column == "Date" else f'Count Pivot - {time_column}'
+        if len(sheet_name) > 31:  # Excel sheet names must be <= 31 characters
+            sheet_name = sheet_name[:31]
 
         # Write to a new sheet in the enhanced file
         with pd.ExcelWriter(self.enhanced_file_name, engine='openpyxl', mode='a') as writer:
-            result_df.to_excel(writer, sheet_name='Count Pivot', index=False)
+            result_df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+            # Access the worksheet
+            worksheet = writer.sheets[sheet_name]
+
+            # Set uniform column width for all columns
+            uniform_width = 10
+
+            # Create header style
+            header_fill = openpyxl.styles.PatternFill(
+                start_color='003366',  # Dark blue
+                end_color='003366',
+                fill_type='solid'
+            )
+            header_font = openpyxl.styles.Font(
+                color='FFFFFF',  # White
+                bold=True
+            )
+            header_alignment = openpyxl.styles.Alignment(
+                wrap_text=True,
+                vertical='center',
+                horizontal='center'
+            )
+
+            # Apply formats
+            for col_idx, _ in enumerate(result_df.columns, 1):
+                column_letter = openpyxl.utils.get_column_letter(col_idx)
+                worksheet.column_dimensions[column_letter].width = uniform_width
+
+                # Apply text wrapping to all heade cells
+                header_cell = worksheet.cell(row=1, column=col_idx)
+                header_cell.fill = header_fill
+                header_cell.font = header_font
+                header_cell.alignment = header_alignment
+
+            # Set header row height for the possibility of wrapped text
+            worksheet.row_dimensions[1].height = 30
 
         print(f"Pivot table added to {self.enhanced_file_name} in 'Count Pivot' sheet.")
 
