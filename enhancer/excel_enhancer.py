@@ -262,27 +262,45 @@ class ExcelEnhancer:
                 color='FFFFFF',  # White
                 bold=True
             )
-            header_alignment = openpyxl.styles.Alignment(
+            center_alignment = openpyxl.styles.Alignment(
                 wrap_text=True,
                 vertical='center',
                 horizontal='center'
             )
 
+            thin_border = openpyxl.styles.Border(
+                left=openpyxl.styles.Side(style='thin'),
+                right=openpyxl.styles.Side(style='thin'),
+                top=openpyxl.styles.Side(style='thin'),
+                bottom=openpyxl.styles.Side(style='thin')
+            )
+
             # Apply formats
-            for col_idx, _ in enumerate(result_df.columns, 1):
+            for col_idx, col_name in enumerate(result_df.columns, 1):
                 column_letter = openpyxl.utils.get_column_letter(col_idx)
+                
+                # Set uniform width for each column
                 worksheet.column_dimensions[column_letter].width = uniform_width
 
-                # Apply text wrapping to all heade cells
-                header_cell = worksheet.cell(row=1, column=col_idx)
-                header_cell.fill = header_fill
-                header_cell.font = header_font
-                header_cell.alignment = header_alignment
+                # Format all cells in column
+                for row_idx, row in enumerate(
+                    worksheet.iter_rows(min_row=1, max_row=len(result_df)+1,
+                                        min_col=col_idx, 
+                                        max_col=col_idx),
+                                        1):
+                    for cell in row:
+                        if row_idx == 1:
+                            cell.fill = header_fill
+                            cell.font = header_font
+                            
+                        # Apply centering and borders to all cells
+                        cell.alignment = center_alignment
+                        cell.border = thin_border
 
             # Set header row height for the possibility of wrapped text
             worksheet.row_dimensions[1].height = 30
 
-        print(f"Pivot table added to {self.enhanced_file_name} in 'Count Pivot' sheet.")
+        print(f"Pivot table added to {self.enhanced_file_name} in '{sheet_name}' sheet.")
 
 
     def create_charts(self):
