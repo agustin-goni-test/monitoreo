@@ -566,6 +566,15 @@ class ExcelEnhancer:
                     cell.alignment = center_alignment
                     cell.border = thin_border
 
+                    # Add value specific format depending on type
+                    if row_idx > 1 and col_idx > 1:
+                        if "Time" in sheet_name:
+                            cell.number_format = openpyxl.styles.numbers.FORMAT_NUMBER_00
+                        elif "Rate" in sheet_name:
+                            cell.number_format = openpyxl.styles.numbers.FORMAT_PERCENTAGE_00    
+                        else:
+                            pass
+
             # Set header row height for the possibility of wrapped text
             worksheet.row_dimensions[1].height = 30
 
