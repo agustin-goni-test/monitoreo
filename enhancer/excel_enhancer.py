@@ -314,7 +314,7 @@ class ExcelEnhancer:
 
 
     def insert_pivot_tables(self):
-        '''Insert pivot tables based on the data in the original file'''
+        '''Insert all pivot tables based on the data in the original file'''
         if self.enhanced_file_name is None:
             raise ValueError("Enhanced file name is not set. Call add_context_columns() first.")
         
@@ -326,44 +326,58 @@ class ExcelEnhancer:
         except Exception as e:
             raise Exception(f"An error occurred while reading the file: {str(e)}")
         
+        # Keep a list of the orderder pairs containing the result data frame (pivot table)
+        # and the name of the sheet in which it will be written
         pairs = []
+
+        # For simplicity and brevity, keep a separate list of sheet names
         sheet_list = []
+
+        # Calculates all pivot tables related to time
+        time_pairs, time_sheet_list = self.calculate_pivot_tables_by_type(df, "TIME")
+
+        # Calculate all pivot tables related to rates or compliance
+        rate_pairs, rate_sheet_list = self.calculate_pivot_tables_by_type(df, "RATE")
         
-        count_pairs, count_sheet_list = self.insert_count_pivot_tables(df)
+        # Calculate all pivot tables related to counts or totals
+        count_pairs, count_sheet_list = self.calculate_pivot_tables_by_type(df, "COUNT")
 
-        # result_df, sheet_name = self.calculate_count_pivot_by_column(df, "Date")
-        # pairs.append((result_df, sheet_name))
-        # sheet_list.append(sheet_name)
+        # Concatenate all results to use for later formatting
+        pairs = pairs + time_pairs + rate_pairs + count_pairs
+        sheet_list = sheet_list + time_sheet_list + rate_sheet_list + count_sheet_list
 
-        # result_df, sheet_name = self.calculate_count_pivot_by_column(df, "Hour")
-        # pairs.append((result_df, sheet_name))
-        # sheet_list.append(sheet_name)
-
-        # result_df, sheet_name = self.calculate_count_pivot_by_column(df, "Weekday")
-        # pairs.append((result_df, sheet_name))
-        # sheet_list.append(sheet_name)
-
-        pairs = pairs + count_pairs
-        sheet_list = sheet_list + count_sheet_list
-
+        # Write all the calculated pivot tables in the file
         self.write_pivot_sheets(pairs)
 
+        # Add formatting to the values in the sheets
         self.format_pivot_sheets(sheet_list)
 
-    def insert_count_pivot_tables(self, df: pd.DataFrame):
+
+    def calculate_pivot_tables_by_type(self, df: pd.DataFrame, pivot_type: str=None):
+        '''Calculates the pivot tables by each possible type. There are three options:
+        
+        "TIME" : for measures that are time driven (such as response time)
+        "RATE" : for measures that are expressed in percentage (such as success rate)
+        "COUNT" : for measures that count events (such as requests)
+
+        All pivot tables are summarized by date, hour, and day of the week.
+        '''
 
         pairs = []
         sheet_list = []
         
-        result_df, sheet_name = self.calculate_count_pivot_by_column(df, "Date")
+        # Pivot by date (grouping everyhing by day)
+        result_df, sheet_name = self.calculate_count_pivot_by_column(df, "Date", pivot_type)
         pairs.append((result_df, sheet_name))
         sheet_list.append(sheet_name)
 
-        result_df, sheet_name = self.calculate_count_pivot_by_column(df, "Hour")
+        # Pivot by hour of the day
+        result_df, sheet_name = self.calculate_count_pivot_by_column(df, "Hour", pivot_type)
         pairs.append((result_df, sheet_name))
         sheet_list.append(sheet_name)
 
-        result_df, sheet_name = self.calculate_count_pivot_by_column(df, "Weekday")
+        # Pivot by 
+        result_df, sheet_name = self.calculate_count_pivot_by_column(df, "Weekday", pivot_type)
         pairs.append((result_df, sheet_name))
         sheet_list.append(sheet_name)
 
@@ -371,19 +385,24 @@ class ExcelEnhancer:
 
 
 
-    def calculate_count_pivot_by_column(self, input_df: pd.DataFrame, pivot_column="Date"):
+    def calculate_count_pivot_by_column(self, input_df: pd.DataFrame, pivot_column="Date", pivot_type: str=None):
         '''This method calculated all the pivot tables that relate to measures
         that implement counts (such as 'request count').'''
          # Chech the required columns exist in the Excel file
         required_columns = ['Date', pivot_column]
         missing = [col for col in required_columns if col not in input_df.columns]
         if missing:
-            raise ValueError(f"The enhanced file is missing required columns: {', '.join(missing)}")
-        
-        # include_time_keyboards = ["Time"]
-        # exclude_time_keyboards = ["Timestamp", "Compliance"]
-        # include_count_keywords = ["Count", "Total"]
-        # include_rate_keword = ["Compliance", "Rate"]
+            raise ValueError(f"The enhanced file is missing required columns: {', '.join(missing)}")        
+
+        if pivot_type == "COUNT":
+            include_keywords = ["Count", "Total"]
+            exclude_keywords = []
+        elif pivot_type == "TIME":
+            include_keywords = ["Time"]
+            exclude_keywords = ["Timestamp", "Compliance"]
+        elif pivot_type == "RATE":
+            include_keywords = ["Compliance", "Rate"]
+            exclude_keywords = []
         
         # Create result data frame to include all columns
         # If pivoting by weekday, make sure the original list is ordered
@@ -397,22 +416,65 @@ class ExcelEnhancer:
 
         # Iterate through columns to find all the ones to include
         for col in input_df.columns:
-            if "Count" in col or "Total" in col:
+            
+            # for keyword in include_count_keywords:
+            #     print(f"keyword: {keyword}, col: {col}, Result: {keyword in col}")
+
+            # Use list of count related keywords to determine the columns to include
+            if (
+                any(keyword.lower() in col.strip().lower() for keyword in include_keywords)
+                and not any(keyword.lower() in col.strip().lower() for keyword in exclude_keywords)
+            ):
 
                 # Maintain the original column name for clarity, no need for changes
 
-                # Separate different cases: time_column is "Date", or something else
-                if pivot_column == "Date":
-                    dimension_df = input_df.groupby("Date", as_index=False)[col].sum()
+                if pivot_type == "COUNT":
+
+                    # Separate different cases: time_column is "Date", or something else
+                    if pivot_column == "Date":
+                        dimension_df = input_df.groupby("Date", as_index=False)[col].sum()
+                    else:
+                        # Two steps to summarize: step 1 - Sum by Date and time_column ("Hour", "Weekday", etc.)
+                        daily_totals_df = input_df.groupby(["Date", pivot_column], as_index=False)[col].sum()
+
+                        # Step 2 - Average across dates for each time_column
+                        dimension_df = daily_totals_df.groupby(pivot_column, as_index=False)[col].mean()
+
+                    # Convert to int (as these are counts
+                    dimension_df[col] = dimension_df[col].astype(int)
+
+                elif pivot_type == "RATE":
+
+                    suffix = "Compliance (%)" if "Compliance" in col else "Rate (%)"
+
+                    # Extract the prefix before either "Response Time" or "Time"
+                    if "Response Time" in col:
+                        new_column_name = col.split("Response Time")[0] + suffix
+                    elif "Time" in col:
+                        new_column_name = col.split("Time")[0] + suffix
+                    else:
+                        new_column_name = col
+
+                    # Summarize by date using the mean of the compliance column
+                    dimension_df = input_df.groupby(pivot_column, as_index=False)[col].mean()
+                    dimension_df.rename(columns={col: new_column_name}, inplace=True)
+
+                elif pivot_type == "TIME":
+
+                    # Rename the column for the target pivot table
+                    if "Response Time" in col:
+                        new_column_name = col.split("Response Time")[0] + "Average Time (s)"
+                    else:
+                        new_column_name = "Average Time (s)"
+
+                    # Summarize by date using the mean of the time column
+                    dimension_df = input_df.groupby(pivot_column, as_index=False)[col].mean()
+                    dimension_df.rename(columns={pivot_column: new_column_name})
+
                 else:
-                    # Two steps to summarize: step 1 - Sum by Date and time_column ("Hour", "Weekday", etc.)
-                    daily_totals_df = input_df.groupby(["Date", pivot_column], as_index=False)[col].sum()
 
-                    # Step 2 - Average across dates for each time_column
-                    dimension_df = daily_totals_df.groupby(pivot_column, as_index=False)[col].mean()
-
-                # Convert to int (as these are counts)
-                dimension_df[col] = dimension_df[col].astype(int)
+                    # Unrecognized case
+                    print("There was an error in the specified type of pivot table")
 
                 # Merge with result data frame
                 result_df = result_df.merge(
@@ -422,7 +484,8 @@ class ExcelEnhancer:
                 )
         
         # Define the name for the new sheet according to situation
-        sheet_name = 'Count Pivot' if pivot_column == "Date" else f'Count Pivot - {pivot_column}'
+        base_name = pivot_type.capitalize()  # Let only first letter be uppercase
+        sheet_name = base_name if pivot_column == "Date" else f'{base_name} - {pivot_column}'
         if len(sheet_name) > 31:  # Excel sheet names must be <= 31 characters
             sheet_name = sheet_name[:31]
 
@@ -705,10 +768,10 @@ def main():
     enhancer.set_file_name("output_files/enhanced/ComercioTransaccionesController_DEFAULT_ENH.xlsx")
 
     # Insert pivot datsable based on time context columns
-    enhancer.insert_time_pivot()
+    # enhancer.insert_time_pivot()
 
     # Insert pivot datsable based on compliance context columns
-    enhancer.insert_compliance_pivot()
+    # enhancer.insert_compliance_pivot()
 
     # Insert pivot datsable based on count context columns
     # enhancer.insert_count_pivot()
